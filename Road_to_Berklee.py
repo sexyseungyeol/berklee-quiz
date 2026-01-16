@@ -7,7 +7,12 @@ import datetime
 from datetime import timedelta
 import hashlib
 import gspread
-import extra_streamlit_components as stx
+# try-except로 감싸서 설치가 안 되어 있어도 앱이 꺼지지 않게 방어
+try:
+    import extra_streamlit_components as stx
+except ImportError:
+    st.error("⚠️ 'extra-streamlit-components' 라이브러리가 설치되지 않았습니다. requirements.txt를 확인해주세요.")
+    st.stop()
 
 # ==========================================
 # 1. DATA DEFINITIONS
