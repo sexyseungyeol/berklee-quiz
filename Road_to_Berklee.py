@@ -79,59 +79,56 @@ class StatManager:
 
     def record(self, category, subcategory, is_correct, is_retry=False):
         if not self.current_user or not self.connected or is_retry: return
-        row = [self.current_user, datetime.datetime.now().timestamp(), datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day, category, subcategory, 1 if is_correct else 0, 1]
+        now = datetime.datetime.now()
+        row = [self.current_user, now.timestamp(), now.year, now.month, now.day, category, subcategory, 1 if is_correct else 0, 1]
         try: self.ws_history.append_row(row)
         except: pass
 
 if 'stat_mgr' not in st.session_state: st.session_state.stat_mgr = StatManager()
 
 # ==========================================
-# 3. SMART KEYPAD (Fixed Logic for + and -)
+# 3. SMART KEYPAD (Total Access Restoration)
 # ==========================================
 def add_input(k): st.session_state.user_input_buffer += k
 def del_input(): st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1]
 def clear_input(): st.session_state.user_input_buffer = ""
 
 def get_smart_keypad(cat, sub):
+    """지능형 레이아웃: 모든 필수 버튼을 최우선적으로 배치"""
     layout = []
-    # 1. 임시표 (Priority 1)
-    if sub != 'Counting semitones': layout.append(['♭', '♯'])
     
-    # 2. 쉼표 (Priority 2)
-    if any(s in sub for s in ['tones', 'Alterations', 'Tensions', 'Dom7', 'Dim7', 'Pitches', 'Pivot', 'Number']):
-        layout.append([','])
+    # 1. 임시표 (♭, ♯)
+    layout.append(['♭', '♯'])
     
-    # 3. 음정 성질 (+, M, P, m, -) (Priority 3) - [FIX: Show by default unless Solfege]
-    if sub != 'Solfege':
-        layout.append(['+', 'M', 'P', 'm', '-'])
-        
-    # 4. 음 이름 (Priority 4)
-    if any(s in sub for s in ['Finding', 'tones', 'Pitch', 'Tracking', 'Key', 'Pitches', 'Pivot']):
-        layout.append(['C', 'D', 'E', 'F']); layout.append(['G', 'A', 'B'])
-        
-    # 5. 도수 (Priority 5)
-    if any(s in sub for s in ['Degrees', 'Finding', 'Pitch->Deg', 'Alterations', 'Chords']):
-        layout.append(['I', 'II', 'III']); layout.append(['IV', 'V', 'VI', 'VII'])
-        
-    # 6. 숫자 (Priority 6)
-    if any(s in sub for s in ['Counting', 'Number', 'Natural', 'r calc', 'tones']):
-        layout.append(['1', '2', '3', '4', '5']); layout.append(['6', '7', '8', '9', '0'])
-        
+    # 2. 구분자 (쉼표)
+    layout.append([','])
+    
+    # 3. 음정 성질 (+, M, P, m, -) - [무조건 출력하도록 로직 고정]
+    layout.append(['+', 'M', 'P', 'm', '-'])
+    
+    # 4. 음 이름 (C~B)
+    layout.append(['C', 'D', 'E', 'F']); layout.append(['G', 'A', 'B'])
+    
+    # 5. 도수 (I ~ VII)
+    layout.append(['I', 'II', 'III']); layout.append(['IV', 'V', 'VI', 'VII'])
+    
+    # 6. 숫자 (1 ~ 0)
+    layout.append(['1', '2', '3', '4', '5']); layout.append(['6', '7', '8', '9', '0'])
+    
     # 7. 모드 & 스케일
-    if cat in ['Modes', 'Minor'] or sub in ['Avail Scales', 'Similarities']:
-        layout.append(['Ionian', 'Dorian', 'Phrygian', 'Lydian'])
-        layout.append(['Natural minor', 'Harmonic minor', 'Melodic minor'])
-        
-    # 8. 코드 타입 (Priority 8)
-    if any(c in cat for c in ['Chord', 'Minor', 'Tritones']):
-        layout.append(['maj7', 'm7', '7', 'm7b5']); layout.append(['dim7', '6', 'm6', 'sus4', 'aug'])
-        
-    # 9. 슬래시 (Priority 9)
-    if any(s in sub for s in ['9 chord', 'Rootless', 'Pivot']):
-        layout.append(['/'])
+    layout.append(['Ionian', 'Dorian', 'Phrygian', 'Lydian'])
+    layout.append(['Natural minor', 'Harmonic minor', 'Melodic minor'])
+    
+    # 8. 코드 타입
+    layout.append(['maj7', 'm7', '7', 'm7b5']); layout.append(['dim7', '6', 'm6', 'sus4', 'aug'])
+    
+    # 9. 슬래시 (최하위)
+    layout.append(['/'])
 
+    # 특수 예외: 솔페즈
     if sub == 'Solfege':
         return [['Do','Re','Mi','Fa'], ['Sol','La','Ti'], ['Di','Ri','Fi','Si','Li'], ['Ra','Me','Se','Le','Te']]
+        
     return layout
 
 def render_keypad(cat, sub):
@@ -141,7 +138,7 @@ def render_keypad(cat, sub):
         cols = st.columns(len(row))
         for j, key in enumerate(row):
             cols[j].button(key, key=f"k_{i}_{j}_{key}", on_click=add_input, args=(key,), use_container_width=True)
-        if i == 0: st.write("") 
+        if i == 0: st.write("") # 가독성을 위한 간격
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 1, 2])
     c1.button("⬅️ Del", on_click=del_input, use_container_width=True)
@@ -152,6 +149,11 @@ def render_keypad(cat, sub):
 # ==========================================
 # 4. QUIZ ENGINE
 # ==========================================
+def get_pitch_index(p):
+    p = p.strip().capitalize().replace('♯','#').replace('♭','b')
+    enh = {'C#':'Db','D#':'Eb','F#':'Gb','G#':'Ab','A#':'Bb','Cb':'B','B#':'C','E#':'F','Fb':'E'}
+    p = enh.get(p, p); return NOTES.index(p) if p in NOTES else -1
+
 def generate_question(cat, sub):
     try:
         root = random.choice(NOTES)
@@ -161,10 +163,10 @@ def generate_question(cat, sub):
         if cat == 'Warming up' and sub == 'Counting semitones':
             d = random.randint(1,13); return f"Which degree is {d} semitones away? (P1=1)", DISTANCE_TO_DEGREE[d], 'single'
         return f"Determine the {sub} for {root}", ["C"], 'single'
-    except: return "Error", ["C"], 'single'
+    except: return "Question Error", ["C"], 'single'
 
 # ==========================================
-# 5. MAIN NAVIGATION
+# 5. APP UI
 # ==========================================
 st.set_page_config(page_title="Road to Berklee", page_icon="🎹")
 cookie_manager = stx.CookieManager()
@@ -193,7 +195,8 @@ if not st.session_state.logged_in_user:
 
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
-    if st.button("Logout"): st.session_state.logged_in_user = None; cookie_manager.delete("berklee_user"); st.rerun()
+    if st.button("Logout"):
+        st.session_state.logged_in_user = None; cookie_manager.delete("berklee_user"); st.rerun()
     st.markdown("---")
     menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "ℹ️ Credits"])
 
@@ -239,14 +242,13 @@ def move_to_next():
     else: qs['current_q'] = qs['retry_pool'][qs['current_idx']] if qs['is_retry'] else generate_question(qs['cat'], qs['sub'])
     st.session_state.user_input_buffer = ""; st.rerun()
 
-# --- RENDERING ---
+# --- RENDER ---
 if menu == "🏠 Home":
     col1, col2 = st.columns([1, 2])
     with col1:
         if os.path.exists("logo.png"): st.image("logo.png", width=180)
         else: st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png", width=150)
-    # [FIXED: Description font size increased]
-    st.markdown("<h1>Road to Berklee</h1><p style='font-size: 24px; font-weight: 500;'>Music Theory Practice Application</p>", unsafe_allow_html=True)
+    st.markdown("<h1>Road to Berklee</h1><p style='font-size: 28px; font-weight: 600; color: #f0f2f6;'>Music Theory Practice Application</p>", unsafe_allow_html=True)
 
 elif menu == "📝 Start Quiz":
     if st.session_state.page == 'quiz':
@@ -279,9 +281,9 @@ elif menu == "📊 Statistics":
     solved = len(st.session_state.stat_mgr.data)
     correct = sum(1 for r in st.session_state.stat_mgr.data if r.get('is_correct', 0) == 1)
     rate = (correct / solved * 100) if solved > 0 else 0
-    # [FIXED: Metric label updated]
-    st.metric(label=f"{solved} steps to Berklee College of Music", value=solved)
-    st.metric("Accuracy", f"{rate:.1f}%")
+    # [FIXED: Requested Phrase Only]
+    st.markdown(f"### {solved} steps to Berklee College of Music")
+    st.write(f"**Total Accuracy:** {rate:.1f}%")
     
     bd = {}
     for r in st.session_state.stat_mgr.data:
@@ -294,4 +296,4 @@ elif menu == "ℹ️ Credits":
     st.header("ℹ️ Credits")
     st.write("### Road to Berklee")
     st.write("**Developed by:** Oh Seung-yeol")
-    st.write("Keep practicing and good luck! 🎹")
+    st.write("Keep practicing and good luck on your journey! 🎹")
