@@ -1,3 +1,5 @@
 streamlit
 gspread
 extra-streamlit-components
+pandas
+matplotlib
