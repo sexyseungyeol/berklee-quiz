@@ -7,11 +7,12 @@ import datetime
 from datetime import timedelta
 import hashlib
 import gspread
-# try-except로 감싸서 설치가 안 되어 있어도 앱이 꺼지지 않게 방어
+
+# 쿠키 매니저 예외 처리
 try:
     import extra_streamlit_components as stx
 except ImportError:
-    st.error("⚠️ 'extra-streamlit-components' 라이브러리가 설치되지 않았습니다. requirements.txt를 확인해주세요.")
+    st.error("⚠️ 'extra-streamlit-components' is missing. Please update requirements.txt")
     st.stop()
 
 # ==========================================
@@ -49,45 +50,19 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
+# --- THEORY DATA (ENGLISH - ALL SECTIONS) ---
 THEORY_DATA = {
     'Enharmonics': {
-        'Degrees': "### Enharmonic Degrees\n\nNotes that sound the same but have different names.\n\n| Original | Enharmonic | Note (C Key) |\n| :--- | :--- | :--- |\n| **#I** | **bII** | C# = Db |\n| **#II** | **bIII** | D# = Eb |\n| **bIV** | **III** | Fb = E |\n| **#IV** | **bV** | F# = Gb |\n| **#V** | **bVI** | G# = Ab |\n| **#VI** | **bVII** | A# = Bb |\n| **bI** | **VII** | Cb = B |\n\n**Tip:** Think 'Flat = Next Degree', 'Sharp = Same Degree'.",
+        'Degrees': "### Enharmonic Degrees\n\nNotes that share the same pitch but have different names.\n\n| Original | Enharmonic | Note (C Key) |\n| :--- | :--- | :--- |\n| **#I** | **bII** | C# = Db |\n| **#II** | **bIII** | D# = Eb |\n| **bIV** | **III** | Fb = E |\n| **#IV** | **bV** | F# = Gb |\n| **#V** | **bVI** | G# = Ab |\n| **#VI** | **bVII** | A# = Bb |\n| **bI** | **VII** | Cb = B |\n\n**Tip:** Flat decreases degree, Sharp keeps or increases degree sound.",
         'Number': "### Enharmonic Intervals\n\n* **Aug 1 (#1) ↔ Min 2 (b2)**\n* **Aug 2 (#2) ↔ Min 3 (b3)**\n* **Aug 4 (#4) ↔ Dim 5 (b5)**\n* **Aug 5 (#5) ↔ Min 6 (b6)**\n* **Dim 7 (bb7) ↔ Maj 6 (6)**",
-        'Interval': "### Natural Intervals\n\n* **m2 (Minor 2nd):** 1 semitone\n* **M2 (Major 2nd):** 2 semitones\n* **m3 (Minor 3rd):** 3 semitones\n* **M3 (Major 3rd):** 4 semitones\n* **P4 (Perfect 4th):** 5 semitones\n* **Tritone:** 6 semitones\n* **P5 (Perfect 5th):** 7 semitones"
+        'Interval': "### Natural Intervals\n\nDistance between notes without any accidentals.\n\n* **m2 (Minor 2nd):** 1 semitone\n* **M2 (Major 2nd):** 2 semitones\n* **m3 (Minor 3rd):** 3 semitones\n* **M3 (Major 3rd):** 4 semitones\n* **P4 (Perfect 4th):** 5 semitones\n* **Tritone:** 6 semitones\n* **P5 (Perfect 5th):** 7 semitones"
     },
     'Warming up': {
-        'Counting semitones': "### Semitones Map\n\n* **0:** P1\n* **1:** b2\n* **2:** M2\n* **3:** b3\n* **4:** M3\n* **5:** P4\n* **6:** b5 / #4\n* **7:** P5\n* **8:** b6 / #5\n* **9:** M6 / bb7\n* **10:** b7\n* **11:** M7\n* **12:** P8",
-        'Chord tones': "### Chord Formulas\n\n* **Maj7:** 1 - 3 - 5 - 7\n* **Dom7:** 1 - 3 - 5 - b7\n* **m7:** 1 - b3 - 5 - b7\n* **m7b5:** 1 - b3 - b5 - b7\n* **dim7:** 1 - b3 - b5 - bb7(=6)\n* **m(maj7):** 1 - b3 - 5 - 7",
-        'Key signatures': "### Key Signatures\n\n**Sharps:** F C G D A E B\n**Flats:** B E A D G C F",
-        'Solfege': "### Chromatic Solfege\n\n* **Sharps:** Di, Ri, Fi, Si, Li\n* **Flats:** Ra, Me, Se, Le, Te"
-    },
-    'Intervals': {
-        'Alternative': "### Inversions\n\n* **Major ↔ Minor**\n* **Aug ↔ Dim**\n* **Perfect ↔ Perfect**\n* **2nd ↔ 7th**\n* **3rd ↔ 6th**\n* **4th ↔ 5th**",
-        'Tracking': "### Interval Tracking\n\n1. Count letters (C to E is a 3rd).\n2. Check semitones."
-    },
-    'Chord Forms': {
-        'Relationships': "### Related Chords\n\n* **Cm7 -> C6:** Lower b7 to 6.\n* **Cm7 -> Cm7b5:** Lower 5 to b5.\n* **Cmaj7 -> C7:** Lower 7 to b7.\n* **Cdim7 -> C7(b9):** Lower any note by 1 semitone.",
-        'Extract (Degree)': "### Upper Structures\n\n* **Cmaj9** (3rd to 9th) = **Em7**\n* **C13** (b7 to 13) = **Bbmaj7#5**"
-    },
-    'Cycle of 5th': {
-        'P5 down': "### Cycle of Fifths\n\n**C - F - Bb - Eb - Ab - Db - Gb - B - E - A - D - G**\n\nAdds one Flat (b) each step.",
-        '2-5-1': "### II-V-I\n\nFrom Target (I):\n* **II:** Whole step up.\n* **V:** Perfect 5th up."
-    },
-    'Tritones': {
-        'Pitch': "### Tritone\n\nInterval of 3 Whole Steps.\n* C - F#\n* F - B\n* Bb - E\n* Eb - A",
-        'Dom7': "### Dom7 & Tritone\n\nTritone is between 3rd and b7.\n* Inwards resolution -> **Imaj7**\n* Outwards resolution -> **Gbmaj7** (Tritone Sub)"
-    },
-    'Modes': {
-        'Alterations': "### Mode Colors\n\n* **Ionian:** Natural\n* **Dorian:** Natural 6\n* **Phrygian:** b2\n* **Lydian:** #4\n* **Mixolydian:** b7\n* **Aeolian:** b6\n* **Locrian:** b2, b5",
-        'Tensions': "### Tensions\n\nAvoid b9 intervals with chord tones.\n* **Ionian:** 9, 13\n* **Dorian:** 9, 11\n* **Phrygian:** 11, b13\n* **Lydian:** 9, #11, 13\n* **Mixolydian:** 9, 13\n* **Aeolian:** 9, 11\n* **Locrian:** 11, b13"
-    },
-    'Minor': {
-        'Chords': "### Minor Harmony\n\n* **Natural:** Im7, IIm7b5, bIIImaj7...\n* **Harmonic:** V7(b9,b13), VIIdim7\n* **Melodic:** ImM7, IV7, V7",
-        'Tensions': "### Minor Tensions\n\n**V7** in minor keys uses **b9, b13**."
-    },
-    'Mastery': {
-        'Functions': "### Functions\n\n* **Tonic:** Imaj7, IIIm7, VIm7\n* **Sub-Dom:** IVmaj7, IIm7\n* **Dominant:** V7, VIIdim7",
-        'Avail Scales': "### Chord Scales\n\n* **Imaj7:** Ionian, Lydian\n* **Im7:** Dorian, Aeolian\n* **V7:** Mixolydian, Altered\n* **m7b5:** Locrian"
+        'Counting semitones': "### Semitones Map\n\n* **0:** P1, **1:** b2, **2:** M2, **3:** b3, **4:** M3\n* **5:** P4, **6:** Tritone, **7:** P5, **8:** b6\n* **9:** M6, **10:** b7, **11:** M7, **12:** P8",
+        'Finding degrees': "### Finding Degrees\n\nFinding the specific degree within a given major key.\n* Example: What is the IV of C? -> **F**",
+        'Chord tones': "### Chord Formulas\n\n* **Maj7:** 1-3-5-7\n* **7:** 1-3-5-b7\n* **m7:** 1-b3-5-b7\n* **m7b5:** 1-b3-b5-b7\n* **dim7:** 1-b3-b5-bb7",
+        'Key signatures': "### Key Signatures\n\n**Sharps:** F-C-G-D-A-E-B\n**Flats:** B-E-A-D-G-C-F",
+        'Solfege': "### Chromatic Solfege\n\n* Di, Ri, Fi, Si, Li (Sharps)\n* Ra, Me, Se, Le, Te (Flats)"
     }
 }
 
@@ -199,9 +174,9 @@ class StatManager:
             records = self.ws_theory.get_all_records()
             for r in records:
                 if r['category'] == category and r['subcategory'] == subcategory:
-                    # [Safety Fix] Ignore empty strings in DB, use Code Data instead
-                    if str(r['content']).strip(): 
-                        return r['content']
+                    val = str(r['content']).strip()
+                    if val: return val # If DB has valid text, use it
+            # Force fallback to THEORY_DATA if DB row is missing or empty
             return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
         except: return DEFAULT_THEORY
 
@@ -376,7 +351,7 @@ def render_keypad(cat, sub):
         if st.button("✅ Submit", type="primary", use_container_width=True): return True
     return False
 
-# --- Question Generation (Same) ---
+# --- Question Generation ---
 def generate_question(cat, sub):
     try:
         if cat == 'Enharmonics':
@@ -385,7 +360,12 @@ def generate_question(cat, sub):
                 t, a = random.choice(pairs)
                 return f"What is {t}'s enharmonic?", [a], 'single'
             elif sub == 'Number':
-                sets = [['1','8','#7'],['#1','b2','#8','b9'],['2','9'],['#2','b3','#9','b10'],['3','b4','10','b11']]
+                # [FIXED: Full scale sets added]
+                sets = [
+                    ['1','8','bb2'],['#1','b2','#8','b9'],['2','9','bb3'],['#2','b3','#9','b10'],
+                    ['3','10','b4'],['4','11','#3'],['#4','b5','#11','b12'],['5','12','bb6'],
+                    ['#5','b6','#12','b13'],['6','13','bb7'],['#6','b7','#13','b14'],['7','14','b8','b1']
+                ]
                 c = random.choice(sets); t = random.choice(c); ans = [x for x in c if x!=t]
                 return f"What are {t}'s enharmonics?", ans, 'single'
             elif sub == 'Interval':
@@ -533,8 +513,7 @@ if st.session_state.logged_in_user is None:
         if st.session_state.stat_mgr.auto_login(user_cookie):
             st.session_state.logged_in_user = user_cookie
             st.session_state.page = 'home'
-            time.sleep(0.5)
-            st.rerun()
+            time.sleep(0.5); st.rerun()
 
 # --- LOGIN / SIGNUP ---
 if not st.session_state.logged_in_user:
@@ -567,45 +546,25 @@ if not st.session_state.logged_in_user:
 # --- MAIN MENU & SIDEBAR ---
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
-    
-    if st.session_state.logged_in_user == '오승열':
-        st.caption("👑 Owner Mode Active")
-
+    if st.session_state.logged_in_user == '오승열': st.caption("👑 Owner Mode Active")
     if st.button("Logout"):
-        st.session_state.logged_in_user = None
-        st.session_state.page = 'login'
-        cookie_manager.delete("berklee_user") 
-        st.rerun()
+        st.session_state.logged_in_user = None; st.session_state.page = 'login'
+        cookie_manager.delete("berklee_user"); st.rerun()
     st.markdown("---")
     menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "🏆 Leaderboard", "📚 Theory", "ℹ️ Credits"])
 
 if 'quiz_state' not in st.session_state:
     st.session_state.quiz_state = {
-        'active': False, 'cat': '', 'sub': '', 'mode': '', 
-        'q_list': [], 'current_idx': 0, 'score': 0, 'start_time': 0,
-        'wrong_list': [], 'answers': [], 'limit': 0, 'feedback': None
+        'active': False, 'cat': '', 'sub': '', 'mode': '', 'q_list': [], 'current_idx': 0, 'score': 0, 'start_time': 0, 'wrong_list': [], 'answers': [], 'limit': 0, 'feedback': None
     }
 
 def start_quiz(cat, sub, mode, limit=0):
-    st.session_state.quiz_state = {
-        'active': True, 'cat': cat, 'sub': sub, 'mode': mode,
-        'current_idx': 0, 'score': 0, 'start_time': time.time(),
-        'wrong_list': [], 'answers': [], 'limit': limit,
-        'current_q': generate_question(cat, sub),
-        'feedback': None
-    }
-    st.session_state.user_input_buffer = "" 
-    st.session_state.page = 'quiz'
-    st.rerun()
+    st.session_state.quiz_state = {'active': True, 'cat': cat, 'sub': sub, 'mode': mode, 'current_idx': 0, 'score': 0, 'start_time': time.time(), 'wrong_list': [], 'answers': [], 'limit': limit, 'current_q': generate_question(cat, sub), 'feedback': None}
+    st.session_state.user_input_buffer = ""; st.session_state.page = 'quiz'; st.rerun()
 
 def check_answer(user_input):
-    qs = st.session_state.quiz_state
-    q_text, ans_list, mode = qs['current_q']
-    
-    user_set = normalize_input(user_input)
-    expected_set = set([str(a).lower().strip() for a in ans_list])
-    is_correct = False
-    
+    qs = st.session_state.quiz_state; q_text, ans_list, mode = qs['current_q']
+    user_set = normalize_input(user_input); expected_set = set([str(a).lower().strip() for a in ans_list]); is_correct = False
     if mode == 'single':
         if user_set and user_set.issubset(expected_set): is_correct = True
     elif mode == 'multi':
@@ -620,74 +579,43 @@ def check_answer(user_input):
         u_idxs = {get_pitch_index(u) for u in user_set if get_pitch_index(u)!=-1}
         e_idxs = {get_pitch_index(a) for a in ans_list}
         if u_idxs and u_idxs == e_idxs: is_correct = True
-        
     if qs['mode'] == 'practice':
         qs['feedback'] = {'is_correct': is_correct, 'user_input': user_input, 'answers': ans_list, 'mode': mode}
-        st.session_state.stat_mgr.record(qs['cat'], qs['sub'], is_correct, is_retry=False)
-        st.rerun()
+        st.session_state.stat_mgr.record(qs['cat'], qs['sub'], is_correct, is_retry=False); st.rerun()
     else:
         qs['answers'].append({'q': q_text, 'u': user_input, 'a': ans_list, 'c': is_correct, 'm': mode})
         if is_correct: qs['score'] += 1
         else: qs['wrong_list'].append((q_text, ans_list, mode))
-        st.session_state.stat_mgr.record(qs['cat'], qs['sub'], is_correct, is_retry=False)
-        next_question()
+        st.session_state.stat_mgr.record(qs['cat'], qs['sub'], is_correct, is_retry=False); next_question()
 
 def next_question():
-    qs = st.session_state.quiz_state
-    qs['current_idx'] += 1
-    qs['feedback'] = None
-    st.session_state.user_input_buffer = "" 
+    qs = st.session_state.quiz_state; qs['current_idx'] += 1; qs['feedback'] = None; st.session_state.user_input_buffer = ""
     is_finished = False
     if qs['mode'] == 'speed':
         if time.time() - qs['start_time'] >= qs['limit']: is_finished = True
     else:
         if qs['current_idx'] >= qs['limit']: is_finished = True
     if is_finished: finish_quiz()
-    else:
-        qs['current_q'] = generate_question(qs['cat'], qs['sub'])
-        st.rerun()
+    else: qs['current_q'] = generate_question(qs['cat'], qs['sub']); st.rerun()
 
 def finish_quiz():
-    qs = st.session_state.quiz_state
-    elapsed = time.time() - qs['start_time']
-    if qs['mode'] == 'test':
-        st.session_state.stat_mgr.update_leaderboard('test', qs['cat'], qs['sub'], {'score': qs['score'], 'total': qs['limit'], 'time': elapsed})
-    elif qs['mode'] == 'speed':
-        st.session_state.stat_mgr.update_leaderboard('speed', qs['cat'], qs['sub'], {'correct': qs['score'], 'total_try': qs['current_idx']})
-    st.session_state.page = 'result'
-    st.rerun()
+    qs = st.session_state.quiz_state; elapsed = time.time() - qs['start_time']
+    if qs['mode'] == 'test': st.session_state.stat_mgr.update_leaderboard('test', qs['cat'], qs['sub'], {'score': qs['score'], 'total': qs['limit'], 'time': elapsed})
+    elif qs['mode'] == 'speed': st.session_state.stat_mgr.update_leaderboard('speed', qs['cat'], qs['sub'], {'correct': qs['score'], 'total_try': qs['current_idx']})
+    st.session_state.page = 'result'; st.rerun()
 
 # --- PAGE RENDERING ---
 
-# 1. REAL HOME PAGE
-if menu == "🏠 Home":
+# 1. HOME
+if "Home" in menu:
     col1, col2 = st.columns([1, 2])
     with col1:
-        # [IMAGE LOGIC] Checks for local file, else falls back to URL (white bg)
-        if os.path.exists("logo.png"):
-            st.image("logo.png", width=200)
-        else:
-            st.markdown(
-                """
-                <div style="background-color: white; padding: 10px; border-radius: 10px; width: fit-content;">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png" width="150">
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
-    
-    # [LEFT ALIGNED TEXT]
-    st.markdown("""
-    <div style='text-align: left;'>
-        <h1>Road to Berklee</h1>
-        <h3>Music Theory practicing application</h3>
-        <br>
-        <p>Master your intervals, chords, scales, and more.</p>
-    </div>
-    """, unsafe_allow_html=True)
+        if os.path.exists("logo.png"): st.image("logo.png", width=200)
+        else: st.markdown("""<div style="background-color: white; padding: 10px; border-radius: 10px; width: fit-content;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png" width="150"></div>""", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: left;'><h1>Road to Berklee</h1><h3>Music Theory practicing application</h3><br><p>Master your intervals, chords, scales, and more.</p></div>", unsafe_allow_html=True)
 
-# 2. QUIZ SELECTION
-elif menu == "📝 Start Quiz":
+# 2. QUIZ
+elif "Start Quiz" in menu:
     if st.session_state.page == 'quiz':
         qs = st.session_state.quiz_state
         if qs['mode'] == 'speed':
@@ -695,9 +623,7 @@ elif menu == "📝 Start Quiz":
             if rem <= 0: finish_quiz()
             st.progress(max(0.0, min(1.0, rem / qs['limit']))); st.caption(f"{int(rem)}s")
         else: st.progress(qs['current_idx'] / qs['limit']); st.caption(f"Q {qs['current_idx']+1}")
-
         st.subheader(qs['current_q'][0])
-
         if qs.get('feedback'):
             fb = qs['feedback']
             if fb['is_correct']: st.success(f"Correct! ({fb['user_input']})")
@@ -706,7 +632,7 @@ elif menu == "📝 Start Quiz":
                 st.error(f"Wrong! ({fb['user_input']})"); st.info(f"Answer: {d}")
             if st.button("Next Question", type="primary"): next_question()
         else:
-            st.text_input("Answer Input (Use buttons below)", value=st.session_state.user_input_buffer, disabled=True, key="display_buffer")
+            st.text_input("Answer Input", value=st.session_state.user_input_buffer, disabled=True, key="display_buffer")
             submitted = render_keypad(qs['cat'], qs['sub'])
             c1, c2 = st.columns(2)
             with c1:
@@ -714,40 +640,32 @@ elif menu == "📝 Start Quiz":
             with c2:
                 if st.button("🏠 Quit"): st.session_state.page = 'home'; st.rerun()
             if submitted: check_answer(st.session_state.user_input_buffer)
-
     elif st.session_state.page == 'result':
-        qs = st.session_state.quiz_state
-        st.header("Result")
-        elapsed = time.time() - qs['start_time']; m, s = divmod(int(elapsed), 60)
-        st.write(f"Time: {m:02d}:{s:02d}")
+        qs = st.session_state.quiz_state; st.header("Result")
+        elapsed = time.time() - qs['start_time']; m, s = divmod(int(elapsed), 60); st.write(f"Time: {m:02d}:{s:02d}")
         sc = qs['score']; tot = len(qs['answers']) if qs['mode']!='speed' else qs['current_idx']
         st.metric("Score", f"{sc}/{tot}", f"{(sc/tot*100) if tot>0 else 0:.1f}%")
         st.subheader("Review")
         for r in qs['answers']:
             c = "green" if r['c'] else "red"; i = "✅" if r['c'] else "❌"
-            with st.expander(f"{i} {r['q']}"):
-                st.write(f"Your: {r['u']}"); st.write(f"Ans: {r['a']}")
+            with st.expander(f"{i} {r['q']}"): st.write(f"Your: {r['u']}"); st.write(f"Ans: {r['a']}")
         if st.button("Home"): st.session_state.page = 'home'; st.rerun()
-
     else:
         st.header("📝 Select Category") 
-        cat_names = list(CATEGORY_INFO.keys())
-        sel_cat = st.selectbox("Category", cat_names)
+        cat_names = list(CATEGORY_INFO.keys()); sel_cat = st.selectbox("Category", cat_names)
         if sel_cat:
-            sel_sub = st.selectbox("Subcategory", CATEGORY_INFO[sel_cat])
-            st.subheader("Quiz Mode")
+            sel_sub = st.selectbox("Subcategory", CATEGORY_INFO[sel_cat]); st.subheader("Quiz Mode")
             m1, m2, m3 = st.tabs(["Practice", "Test (20Q)", "Speed Run (60s)"])
             with m1:
                 cnt = st.number_input("Count", 5)
                 if st.button("Start Practice"): start_quiz(sel_cat, sel_sub, 'practice', cnt)
             with m2:
-                st.write("20 Questions, No Feedback."); 
-                if st.button("Start Test"): start_quiz(sel_cat, sel_sub, 'test', 20)
+                st.write("20 Questions, No Feedback."); if st.button("Start Test"): start_quiz(sel_cat, sel_sub, 'test', 20)
             with m3:
-                st.write("60 Seconds."); 
-                if st.button("Start Speed Run"): start_quiz(sel_cat, sel_sub, 'speed', 60)
+                st.write("60 Seconds."); if st.button("Start Speed Run"): start_quiz(sel_cat, sel_sub, 'speed', 60)
 
-elif menu == "📊 Statistics":
+# 3. STATISTICS
+elif "Statistics" in menu:
     st.header("📊 Statistics") 
     t1, t2 = st.tabs(["Cumulative", "Trend"])
     with t1:
@@ -757,79 +675,56 @@ elif menu == "📊 Statistics":
         for c in sorted(bd.keys()):
             with st.expander(f"{c} ({bd[c]['correct']}/{bd[c]['total']})"):
                 for s in bd[c]['subs']:
-                    sd = bd[c]['subs'][s]
-                    st.write(f"- {s}: {(sd['correct']/sd['total']*100 if sd['total']>0 else 0):.1f}%")
+                    sd = bd[c]['subs'][s]; st.write(f"- {s}: {(sd['correct']/sd['total']*100 if sd['total']>0 else 0):.1f}%")
     with t2:
-        st.subheader("Trend")
-        t_cat = st.selectbox("Category", ["All"] + list(CATEGORY_INFO.keys()))
-        t_sub = None
-        if t_cat != "All": t_sub = st.selectbox("Sub", ["All"] + CATEGORY_INFO[t_cat])
-        if t_sub == "All": t_sub = None
+        st.subheader("Trend"); t_cat = st.selectbox("Category", ["All"] + list(CATEGORY_INFO.keys()))
+        t_sub = st.selectbox("Subcategory", ["All"] + CATEGORY_INFO[t_cat]) if t_cat != "All" else None
         if st.button("Analyze"):
-            d = st.session_state.stat_mgr.get_trend_data(t_cat, t_sub, "weekly") 
+            d = st.session_state.stat_mgr.get_trend_data(t_cat, t_sub if t_sub != "All" else None, "weekly") 
             if d: st.line_chart({x[0]: x[1] for x in d})
             else: st.warning("No Data")
 
-elif menu == "🏆 Leaderboard":
+# 4. LEADERBOARD
+elif "Leaderboard" in menu:
     st.header("🏆 Hall of Fame") 
-    l_cat = st.selectbox("Category", list(CATEGORY_INFO.keys()))
-    l_sub = st.selectbox("Subcategory", CATEGORY_INFO[l_cat])
+    l_cat = st.selectbox("Category", list(CATEGORY_INFO.keys())); l_sub = st.selectbox("Subcategory", CATEGORY_INFO[l_cat])
     c1, c2 = st.columns(2)
     with c1:
         st.subheader("Test")
         d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('test', [])
-        for i, r in enumerate(d):
-            m,s = divmod(int(r['time']),60)
-            st.write(f"**{i+1}. {r.get('username','?')}**: {r['score']}/{r['total']} ({m:02d}:{s:02d})")
+        for i, r in enumerate(d): m,s = divmod(int(r['time']),60); st.write(f"**{i+1}. {r.get('username','?')}**: {r['score']}/{r['total']} ({m:02d}:{s:02d})")
     with c2:
         st.subheader("Speed")
         d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('speed', [])
         for i, r in enumerate(d): st.write(f"**{i+1}. {r.get('username','?')}**: {r['solved']} ({r['rate']:.1f}%)")
 
-elif menu == "📚 Theory":
+# 5. THEORY
+elif "Theory" in menu:
     st.header("📚 Music Theory") 
-    
     col1, col2 = st.columns([8, 2])
     t_cat = col1.selectbox("Category", list(CATEGORY_INFO.keys()))
     t_sub = col1.selectbox("Subcategory", CATEGORY_INFO[t_cat])
-    
     if st.session_state.logged_in_user == '오승열':
         if not st.session_state.edit_mode:
-            if col2.button("✏️ Edit"):
-                st.session_state.edit_mode = True
-                st.rerun()
-
+            if col2.button("✏️ Edit"): st.session_state.edit_mode = True; st.rerun()
     st.markdown("---")
     current_content = st.session_state.stat_mgr.get_theory(t_cat, t_sub)
-    
     if st.session_state.edit_mode and st.session_state.logged_in_user == '오승열':
         st.warning("🛠️ Editing Mode")
         new_content = st.text_area("Markdown Content", value=current_content, height=400)
-        
         c1, c2, c3 = st.columns([1,1,2])
         with c1:
             if st.button("💾 Save"):
-                if st.session_state.stat_mgr.save_theory(t_cat, t_sub, new_content):
-                    st.success("Saved!")
-                    st.session_state.edit_mode = False
-                    time.sleep(0.5)
-                    st.rerun()
+                if st.session_state.stat_mgr.save_theory(t_cat, t_sub, new_content): st.success("Saved!"); st.session_state.edit_mode = False; time.sleep(0.5); st.rerun()
                 else: st.error("Error saving.")
         with c2:
             if st.button("🔄 Reset"):
                 default_text = THEORY_DATA.get(t_cat, {}).get(t_sub, DEFAULT_THEORY)
-                if st.session_state.stat_mgr.save_theory(t_cat, t_sub, default_text):
-                    st.success("Reset to Default (English)!")
-                    st.session_state.edit_mode = False
-                    time.sleep(0.5)
-                    st.rerun()
+                if st.session_state.stat_mgr.save_theory(t_cat, t_sub, default_text): st.success("Reset!"); st.session_state.edit_mode = False; time.sleep(0.5); st.rerun()
         with c3:
-            if st.button("❌ Cancel"):
-                st.session_state.edit_mode = False
-                st.rerun()
-    else:
-        st.markdown(current_content, unsafe_allow_html=True)
+            if st.button("❌ Cancel"): st.session_state.edit_mode = False; st.rerun()
+    else: st.markdown(current_content, unsafe_allow_html=True)
 
-elif menu == "ℹ️ Credits":
-    st.header("ℹ️ Credits")
-    st.write("Created by: Oh Seung-yeol")
+# 6. CREDITS
+elif "Credits" in menu:
+    st.header("ℹ️ Credits"); st.write("Created by: Oh Seung-yeol")
