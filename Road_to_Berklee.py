@@ -8,132 +8,35 @@ from datetime import timedelta
 import hashlib
 import gspread
 
-# 쿠키 매니저 (설치 안 된 경우 에러 방지)
+# Cookie Manager Exception Handling
 try:
     import extra_streamlit_components as stx
 except ImportError:
-    st.error("⚠️ 'extra-streamlit-components' 라이브러리가 없습니다. requirements.txt를 확인해주세요.")
+    st.error("⚠️ 'extra-streamlit-components' is missing. Please update requirements.txt")
     st.stop()
 
 # ==========================================
-# 1. 데이터 정의 (DATA DEFINITIONS)
+# 1. DATA DEFINITIONS
 # ==========================================
 NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+NATURAL_INTERVAL_DATA = {'P1': ['-2', '+7', 'P8', '+14'], 'm2': ['+1', 'm9', '+8'], 'M2': ['-3', 'M9', '-10'], 'm3': ['+2', 'm10', '+9'], 'M3': ['-4', 'M10', '-11'], 'P4': ['+3', 'P11', '+10'], 'Tritone': ['+11', '-12'], 'P5': ['-6', 'P12', '-13'], 'm6': ['+5', 'm13', '+12'], 'M6': ['-7', 'M13', '-14'], 'm7': ['+6', 'm14', '+13'], 'M7': ['-8', 'M14']}
+DISTANCE_TO_DEGREE = {1:['I'],2:['#I','bII'],3:['II'],4:['#II','bIII'],5:['III'],6:['IV'],7:['#IV','bV'],8:['V'],9:['#V','bVI'],10:['VI'],11:['#VI','bVII'],12:['VII']}
+DEGREE_MAP = {'I':0,'bII':1,'#I':1,'II':2,'bIII':3,'#II':3,'III':4,'IV':5,'#III':5,'bV':6,'#IV':6,'V':7,'bVI':8,'#V':8,'VI':9,'bVII':10,'#VI':10,'VII':11}
+R_CALC_MAP = {'I':0,'P1':0,'V':1,'P5':1,'II':2,'M2':2,'9':2,'VI':3,'M6':3,'13':3,'III':4,'M3':4,'VII':5,'M7':5,'#IV':6,'bV':6,'#11':6,'bII':7,'#I':7,'b9':7,'bVI':8,'#V':8,'b13':8,'bIII':9,'#II':9,'m3':9,'#9':9,'bVII':10,'m7':10,'IV':11,'P4':11,'11':11}
+ENHARMONIC_GROUPS = {0:['C','B#'],1:['Db','C#'],2:['D'],3:['Eb','D#'],4:['E','Fb'],5:['F','E#'],6:['Gb','F#'],7:['G'],8:['Ab','G#'],9:['A'],10:['Bb','A#'],11:['B','Cb']}
+SOLFEGE = {'I':'Do','II':'Re','III':'Mi','IV':'Fa','V':'Sol','VI':'La','VII':'Ti','bII':'Ra','bIII':'Me','bV':'Se','bVI':'Le','bVII':'Te','#I':'Di','#II':'Ri','#IV':'Fi','#V':'Si','#VI':'Li'}
+KEY_SIGS_MAJOR = {'C':'','G':'#','D':'##','A':'###','E':'####','B':'#####','F#':'######','F':'b','Bb':'bb','Eb':'bbb','Ab':'bbbb','Db':'bbbbb','Gb':'bbbbbb'}
+KEY_SIGS_MINOR = {'A':'','E':'#','B':'##','F#':'###','C#':'####','G#':'#####','D#':'######','D':'b','G':'bb','C':'bbb','F':'bbbb','Bb':'bbbbb','Eb':'bbbbbb'}
+CHORD_FORMULAS = {'maj7':[0,4,7,11],'mM7':[0,3,7,11],'6':[0,4,7,9],'m6':[0,3,7,9],'7':[0,4,7,10],'m7':[0,3,7,10],'m7b5':[0,3,6,10],'dim7':[0,3,6,9],'aug':[0,4,8],'aug7':[0,4,8,10],'7(b5)':[0,4,6,10],'+M7':[0,4,8,11],'7sus4':[0,5,7,10]}
+SCALES_DATA = {'Ionian':['I','II','III','IV','V','VI','VII'],'Dorian':['I','II','bIII','IV','V','VI','bVII'],'Phrygian':['I','bII','bIII','IV','V','bVI','bVII'],'Lydian':['I','II','III','#IV','V','VI','VII'],'Mixolydian':['I','II','III','IV','V','VI','bVII'],'Aeolian':['I','II','bIII','IV','V','bVI','bVII'],'Locrian':['I','bII','bIII','IV','bV','bVI','bVII'],'Natural minor':['I','II','bIII','IV','V','bVI','bVII'],'Harmonic minor':['I','II','bIII','IV','V','bVI','VII'],'Melodic minor':['I','II','bIII','IV','V','VI','VII']}
+MODE_ALTERATIONS = {'Dorian':['bIII','bVII'],'Phrygian':['bII','bIII','bVI','bVII'],'Lydian':['#IV'],'Mixolydian':['bVII'],'Aeolian':['bIII','bVI','bVII'],'Locrian':['bII','bIII','bV','bVI','bVII']}
+AVAILABLE_SCALES_MAP = {'Ionian':['I','I6','Imaj7'],'Dorian':['IVm','IVm6','IVm7','IIm7','Vm','Vm7'],'Phrygian':['IIIm7'],'Lydian':['IV','IVmaj7','bVII','bVIImaj7','bVImaj7','bIImaj7','bIIImaj7','IV6'],'Mixolydian':['V','bVII7','V7/IV','V7/V'],'Aeolian':['VIm7'],'Locrian':['VIIm7b5','#IVm7b5','IIm7b5'],'All':['I7'],'Altered':['VII7']}
+CHORD_FUNCTIONS = {'T':['I','I6','Imaj7','IIIm7','VIm7','I7','IIIm7b5','III7','#IVm7b5'],'Tm':['Im','Im6','Imb6','Im7','ImM7','bIIImaj7','bIII+M7','VIm7b5','bVImaj7'],'SD':['IV','IV6','IVmaj7','IIm7','IV7','bVII','bVIImaj7','VII7','#IVm7b5'],'SDm':['IVm','IVm6','IVm7','IIm7b5','bVI6','bVImaj7','bVII7','bIImaj7','bVI7','IVmM7'],'D':['V','V7','VIIm7b6','bII7','VIIdim7'],'Dm':['Vm','Vm7']}
+DUAL_FUNCTION_CHORDS = {'#IVm7b5':['T','SD'],'bVImaj7':['SDm','Tm']}
+MODE_TENSIONS = {'Ionian':['9','13'],'Dorian':['9','11'],'Phrygian':['11'],'Lydian':['9','#11','13'],'Mixolydian':['9','13'],'Aeolian':['9','11'],'Locrian':['11','b13']}
+MINOR_DATA = {'Natural minor':{'degrees':['I','II','bIII'],'chords':['m7','m7b5','maj7'],'tens':[['9','11'],['11','b13'],['9','13']]},'Harmonic minor':{'degrees':['I','V','VII'],'chords':['mM7','7','dim7'],'tens':[['9','11'],['9','b13'],['9','11']]},'Melodic minor':{'degrees':['I','IV','V'],'chords':['mM7','7','7'],'tens':[['9','11','13'],['9','#11','13'],['9','b13']]}}
+MODE_OFFSET_MAP = {'Ionian':0,'Dorian':2,'Phrygian':4,'Lydian':5,'Mixolydian':7,'Aeolian':9,'Locrian':11}
 
-NATURAL_INTERVAL_DATA = {
-    'P1': ['-2', '+7', 'P8', '+14'], 
-    'm2': ['+1', 'm9', '+8'], 
-    'M2': ['-3', 'M9', '-10'], 
-    'm3': ['+2', 'm10', '+9'], 
-    'M3': ['-4', 'M10', '-11'], 
-    'P4': ['+3', 'P11', '+10'], 
-    'Tritone': ['+11', '-12'], 
-    'P5': ['-6', 'P12', '-13'], 
-    'm6': ['+5', 'm13', '+12'], 
-    'M6': ['-7', 'M13', '-14'], 
-    'm7': ['+6', 'm14', '+13'], 
-    'M7': ['-8', 'M14']
-}
-
-DISTANCE_TO_DEGREE = {
-    1:['I'], 2:['#I','bII'], 3:['II'], 4:['#II','bIII'], 5:['III'], 
-    6:['IV'], 7:['#IV','bV'], 8:['V'], 9:['#V','bVI'], 10:['VI'], 
-    11:['#VI','bVII'], 12:['VII']
-}
-
-DEGREE_MAP = {
-    'I':0, 'bII':1, '#I':1, 'II':2, 'bIII':3, '#II':3, 'III':4, 
-    'IV':5, '#III':5, 'bV':6, '#IV':6, 'V':7, 'bVI':8, '#V':8, 
-    'VI':9, 'bVII':10, '#VI':10, 'VII':11
-}
-
-R_CALC_MAP = {
-    'I':0,'P1':0,'V':1,'P5':1,'II':2,'M2':2,'9':2,'VI':3,'M6':3,'13':3,
-    'III':4,'M3':4,'VII':5,'M7':5,'#IV':6,'bV':6,'#11':6,'bII':7,'#I':7,
-    'b9':7,'bVI':8,'#V':8,'b13':8,'bIII':9,'#II':9,'m3':9,'#9':9,'bVII':10,
-    'm7':10,'IV':11,'P4':11,'11':11
-}
-
-ENHARMONIC_GROUPS = {
-    0:['C','B#'], 1:['Db','C#'], 2:['D'], 3:['Eb','D#'], 4:['E','Fb'], 
-    5:['F','E#'], 6:['Gb','F#'], 7:['G'], 8:['Ab','G#'], 9:['A'], 
-    10:['Bb','A#'], 11:['B','Cb']
-}
-
-SOLFEGE = {
-    'I':'Do', 'II':'Re', 'III':'Mi', 'IV':'Fa', 'V':'Sol', 'VI':'La', 'VII':'Ti',
-    'bII':'Ra', 'bIII':'Me', 'bV':'Se', 'bVI':'Le', 'bVII':'Te',
-    '#I':'Di', '#II':'Ri', '#IV':'Fi', '#V':'Si', '#VI':'Li'
-}
-
-KEY_SIGS_MAJOR = {
-    'C':'', 'G':'#', 'D':'##', 'A':'###', 'E':'####', 'B':'#####', 'F#':'######',
-    'F':'b', 'Bb':'bb', 'Eb':'bbb', 'Ab':'bbbb', 'Db':'bbbbb', 'Gb':'bbbbbb'
-}
-
-KEY_SIGS_MINOR = {
-    'A':'', 'E':'#', 'B':'##', 'F#':'###', 'C#':'####', 'G#':'#####', 'D#':'######',
-    'D':'b', 'G':'bb', 'C':'bbb', 'F':'bbbb', 'Bb':'bbbbb', 'Eb':'bbbbbb'
-}
-
-CHORD_FORMULAS = {
-    'maj7':[0,4,7,11], 'mM7':[0,3,7,11], '6':[0,4,7,9], 'm6':[0,3,7,9],
-    '7':[0,4,7,10], 'm7':[0,3,7,10], 'm7b5':[0,3,6,10], 'dim7':[0,3,6,9],
-    'aug':[0,4,8], 'aug7':[0,4,8,10], '7(b5)':[0,4,6,10], '+M7':[0,4,8,11],
-    '7sus4':[0,5,7,10]
-}
-
-SCALES_DATA = {
-    'Ionian':['I','II','III','IV','V','VI','VII'],
-    'Dorian':['I','II','bIII','IV','V','VI','bVII'],
-    'Phrygian':['I','bII','bIII','IV','V','bVI','bVII'],
-    'Lydian':['I','II','III','#IV','V','VI','VII'],
-    'Mixolydian':['I','II','III','IV','V','VI','bVII'],
-    'Aeolian':['I','II','bIII','IV','V','bVI','bVII'],
-    'Locrian':['I','bII','bIII','IV','bV','bVI','bVII'],
-    'Natural minor':['I','II','bIII','IV','V','bVI','bVII'],
-    'Harmonic minor':['I','II','bIII','IV','V','bVI','VII'],
-    'Melodic minor':['I','II','bIII','IV','V','VI','VII']
-}
-
-MODE_ALTERATIONS = {
-    'Dorian':['bIII','bVII'], 'Phrygian':['bII','bIII','bVI','bVII'],
-    'Lydian':['#IV'], 'Mixolydian':['bVII'],
-    'Aeolian':['bIII','bVI','bVII'], 'Locrian':['bII','bIII','bV','bVI','bVII']
-}
-
-AVAILABLE_SCALES_MAP = {
-    'Ionian':['I','I6','Imaj7'], 'Dorian':['IVm','IVm6','IVm7','IIm7','Vm','Vm7'],
-    'Phrygian':['IIIm7'], 'Lydian':['IV','IVmaj7','bVII','bVIImaj7','bVImaj7','bIImaj7','bIIImaj7','IV6'],
-    'Mixolydian':['V','bVII7','V7/IV','V7/V'], 'Aeolian':['VIm7'],
-    'Locrian':['VIIm7b5','#IVm7b5','IIm7b5'], 'All':['I7'], 'Altered':['VII7']
-}
-
-CHORD_FUNCTIONS = {
-    'T':['I','I6','Imaj7','IIIm7','VIm7','I7','IIIm7b5','III7','#IVm7b5'],
-    'Tm':['Im','Im6','Imb6','Im7','ImM7','bIIImaj7','bIII+M7','VIm7b5','bVImaj7'],
-    'SD':['IV','IV6','IVmaj7','IIm7','IV7','bVII','bVIImaj7','VII7','#IVm7b5'],
-    'SDm':['IVm','IVm6','IVm7','IIm7b5','bVI6','bVImaj7','bVII7','bIImaj7','bVI7','IVmM7'],
-    'D':['V','V7','VIIm7b6','bII7','VIIdim7'], 'Dm':['Vm','Vm7']
-}
-
-DUAL_FUNCTION_CHORDS = {'#IVm7b5':['T','SD'], 'bVImaj7':['SDm','Tm']}
-
-MODE_TENSIONS = {
-    'Ionian':['9','13'], 'Dorian':['9','11'], 'Phrygian':['11'],
-    'Lydian':['9','#11','13'], 'Mixolydian':['9','13'],
-    'Aeolian':['9','11'], 'Locrian':['11','b13']
-}
-
-MINOR_DATA = {
-    'Natural minor':{'degrees':['I','II','bIII'],'chords':['m7','m7b5','maj7'],'tens':[['9','11'],['11','b13'],['9','13']]},
-    'Harmonic minor':{'degrees':['I','V','VII'],'chords':['mM7','7','dim7'],'tens':[['9','11'],['9','b13'],['9','11']]},
-    'Melodic minor':{'degrees':['I','IV','V'],'chords':['mM7','7','7'],'tens':[['9','11','13'],['9','#11','13'],['9','b13']]}
-}
-
-MODE_OFFSET_MAP = {'Ionian':0, 'Dorian':2, 'Phrygian':4, 'Lydian':5, 'Mixolydian':7, 'Aeolian':9, 'Locrian':11}
-
-# [CATEGORY NAME UNIFIED]
 CATEGORY_INFO = {
     'Enharmonics': ['Degrees', 'Number', 'Natural Form'],
     'Warming up': ['Counting semitones', 'Finding degrees', 'Chord tones', 'Key signatures', 'Solfege'],
@@ -147,12 +50,65 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
-# --- THEORY DATA (ENGLISH) ---
+# --- FULL THEORY DATA (100% FILLED) ---
 THEORY_DATA = {
     'Enharmonics': {
         'Degrees': "### Enharmonic Degrees\n\nNotes that share the same pitch but have different names.\n\n| Sharp | Flat | Relation |\n| :--- | :--- | :--- |\n| #I | bII | Root # ↔ Super b |\n| #II | bIII | Super # ↔ Mediant b |\n| #IV | bV | Tritone |",
         'Number': "### Enharmonic Interval Numbers\n\nIdentifying compound intervals and rare interval names.\n\n| Semitones | Simple | Compound | Rare |\n| :--- | :--- | :--- | :--- |\n| 2 | 2 (M2) | 9 | bb3 |\n| 5 | 4 (P4) | 11 | #3 |",
-        'Natural Form': "### Natural Form\n\nPrimary natural interval names for special codes.\n\n| Code | Natural Form |\n| :--- | :--- |\n| +7, -2 | P8 |\n| +1, +8 | m2 |\n| +3, +10 | P4 |"
+        'Natural Form': "### Natural Form\n\nConverting shortcut notation (offsets) back to natural interval names.\n\n| Code | Meaning | Natural Form |\n| :--- | :--- | :--- |\n| **+7** | Up 7 semitones | **P5** |\n| **-2** | Down 2 semitones | **b7** (from Octave) |\n| **+1, +8** | Up 1 (m2) | **m2** |\n| **+11, -12** | Tritone split | **Tritone** |\n| **+14** | Octave + Whole step | **M9** |"
+    },
+    'Warming up': {
+        'Counting semitones': "### Semitones Map\n\n* **0:** P1, **1:** b2, **2:** M2, **3:** b3, **4:** M3\n* **5:** P4, **6:** Tritone, **7:** P5, **8:** b6\n* **9:** M6, **10:** b7, **11:** M7, **12:** P8",
+        'Finding degrees': "### Finding Degrees\n\nFinding the specific degree within a given major key.\n* Example: What is the IV of C? -> **F**",
+        'Chord tones': "### Chord Formulas\n\n* **Maj7:** 1-3-5-7\n* **7:** 1-3-5-b7\n* **m7:** 1-b3-5-b7\n* **m7b5:** 1-b3-b5-b7\n* **dim7:** 1-b3-b5-bb7",
+        'Key signatures': "### Key Signatures\n\n**Sharps:** F-C-G-D-A-E-B\n**Flats:** B-E-A-D-G-C-F",
+        'Solfege': "### Chromatic Solfege\n\n* Di, Ri, Fi, Si, Li (Sharps)\n* Ra, Me, Se, Le, Te (Flats)"
+    },
+    'Intervals': {
+        'Alternative': "### Alternative Intervals (Inversions)\n\nAn interval and its inversion always add up to **9**.\n\n* **Major (M)** ↔ **Minor (m)**\n* **Augmented (+)** ↔ **Diminished (-)**\n* **Perfect (P)** ↔ **Perfect (P)**\n\n* **m2** (1 semi) ↔ **M7** (11 semi)\n* **m3** (3 semi) ↔ **M6** (9 semi)",
+        'Tracking': "### Interval Tracking\n\nCalculating the target note from a starting note and an interval.\n\n1. **Alphabet Check:** Move the letter first (e.g., C up a 3rd is E).\n2. **Quality Check:** Adjust accidentals to match the interval quality (e.g., C to E is M3, so C to Eb is m3)."
+    },
+    'Chord Forms': {
+        'Relationships': "### Chord Relationships\n\nChanging one note transforms the chord type.\n\n* **m7 → 6:** Lower the b7 to 6.\n* **m7 → m7b5:** Lower the 5 to b5.\n* **Maj7 → 7:** Lower the 7 to b7.\n* **dim7 → 7(b9):** Lower any single note of a dim7 chord by 1 semitone to create a Root for a Dominant 7(b9).",
+        'Extract (Degree)': "### Upper Structure Extraction (from Degree)\n\nFinding chords hidden within the scale degrees of a key.\n\n* **From V7:** The 3rd, 5th, b7, and 9th form a **m7b5** chord on the VII degree.\n* **From Maj9:** The 3-5-7-9 forms a **m7** chord starting on the 3rd degree.",
+        'Extract (Pitch)': "### Upper Structure Extraction (from Pitch)\n\n* **Cmaj9 (C E G B D):** The upper part (E G B D) is **Em7**.\n* **C13 (C E G Bb D A):** Upper structure includes **Dm7** and **Bbmaj7** shapes.",
+        '9 chord': "### 9th Chords\n\nExpanding 7th chords to include the 9th tension.\n\n* **Maj9:** Maj7 + M2\n* **9:** Dom7 + M2\n* **m9:** m7 + M2",
+        'Rootless': "### Rootless Voicings\n\nPlaying chords without the root (assuming bass plays it).\n\n* **Left Hand A/B Voicings:** 3-5-7-9 or 7-9-3-5.\n* **7sus4:** Often used as a rootless voicing for a **6(9)** chord built on the Perfect 4th below."
+    },
+    'Cycle of 5th': {
+        'P5 down': "### Cycle of Fifths (Down P5 / Up P4)\n\n**C - F - Bb - Eb - Ab - Db - Gb - B - E - A - D - G**\n\nThis is the direction of resolution (V -> I). Memorize this sequence backwards and forwards.",
+        'P5 up': "### Cycle of Fifths (Up P5)\n\n**C - G - D - A - E - B - F#...**\n\nThis is the order of adding Sharps (#) to the key signature.",
+        'r calc': "### 'r' Calculation (Circle Distance)\n\nCalculates the distance on the Circle of Fifths from C.\n\n* **C = 0**\n* **G = 1** (#)\n* **F = 11** (or -1, b)",
+        '2-5-1': "### 2-5-1 Progression\n\nBased on the target I chord:\n* **II:** Major 2nd up from I (Minor chord)\n* **V:** Perfect 5th up from I (Dominant chord)\n* **I:** Target (Major/Minor)"
+    },
+    'Locations': {
+        'Deg->Pitch': "### Degree to Pitch\n\nGiven a Key and a Degree, identify the Note.\n\n* **Key: Eb, Degree: V** -> Bb (Perfect 5th above Eb)",
+        'Pitch->Deg': "### Pitch to Degree\n\nGiven a Key and a Note, identify the Degree.\n\n* **Key: G, Note: F#** -> VII (Major 7th)"
+    },
+    'Tritones': {
+        'Pitch': "### Tritone (Aug4 / Dim5)\n\nThe interval of 3 whole tones (6 semitones). It divides the octave perfectly in half.\n\n* **C - F#**\n* **F - B**\n* **Bb - E**",
+        'Degree': "### Tritone Degrees\n\nIn a Major Scale, the natural tritone occurs between:\n\n* **IV** (Subdominant) and **VII** (Leading Tone).",
+        'Dom7': "### Dominant 7th & Tritones\n\nThe **3rd** and **b7** of a Dominant 7th chord form a Tritone. This interval creates the tension that resolves to the Tonic.\n\n* **G7:** B (3rd) and F (b7) are the tritone.",
+        'Dim7': "### Diminished 7th & Tritones\n\nA Dim7 chord contains **two overlapping tritones**.\n\n* **Cdim7 (C Eb Gb A):** Tritones are C-Gb and Eb-A."
+    },
+    'Modes': {
+        'Alterations': "### Mode Characteristic Notes\n\n* **Ionian:** Natural (4 is avoid)\n* **Dorian:** Natural 6\n* **Phrygian:** b2\n* **Lydian:** #4\n* **Mixolydian:** b7\n* **Aeolian:** b6\n* **Locrian:** b2, b5",
+        'Tensions': "### Available Tensions\n\n* **Ionian:** 9, 13\n* **Dorian:** 9, 11\n* **Phrygian:** 11, b13\n* **Lydian:** 9, #11, 13\n* **Mixolydian:** 9, 13\n* **Aeolian:** 9, 11",
+        'Chords(Deg)': "### Diatonic Chords of Modes\n\nWhich chord is on the Tonic?\n* **Dorian:** Im7\n* **Mixolydian:** I7\n* **Lydian:** Imaj7",
+        'Chords(Key)': "### Modal Interchange\n\nBorrowing chords from parallel modes.\n* **bVII7:** Borrowed from Mixolydian or Natural Minor."
+    },
+    'Minor': {
+        'Chords': "### Minor Scale Harmony\n\n* **Natural:** Im7, IIm7b5, bIIImaj7, IVm7, Vm7, bVImaj7, bVII7\n* **Harmonic:** ImM7, IIm7b5, bIII+maj7, IVm7, V7, bVImaj7, VIIdim7",
+        'Tensions': "### Minor Key Tensions\n\n* **V7 in Minor:** Usually takes **b9, b13** (from Harmonic Minor).\n* **Im6:** Dorian sound (Natural 6).",
+        'Pitch': "### Minor Key Calculation\n\nRemember to adjust for the key signature (b3, b6, b7 for Natural Minor)."
+    },
+    'Mastery': {
+        'Functions': "### Harmonic Functions\n\n* **Tonic:** Stable (Imaj7, IIIm7, VIm7)\n* **Sub-Dominant:** Moving (IVmaj7, IIm7)\n* **Dominant:** Tension (V7, VIIdim7)\n* **SDm:** Minor Plagal (IVm, bVI, bII)",
+        'Degrees': "### Scale Degrees\n\nRapid identification of scale degrees in all 12 keys.",
+        'Pitches': "### Scale Pitches\n\nListing all notes in a specific scale/mode.",
+        'Avail Scales': "### Chord Scale Matching\n\n* **Maj7:** Ionian, Lydian\n* **m7:** Dorian, Phrygian, Aeolian\n* **7:** Mixolydian, Lydian b7, Altered, HMP5",
+        'Pivot': "### Pivot Chords\n\nChords common to two keys, used for modulation.\n* **Cmaj7** is I in C, and IV in G.",
+        'Similarities': "### Modal Similarities\n\nComparing modes with only 1 note difference.\n* **Ionian vs Lydian:** Only #4 differs.\n* **Mixolydian vs Dorian:** Only 3rd differs."
     }
 }
 
@@ -410,8 +366,9 @@ def render_keypad(cat, sub):
         <style>
         .stButton > button {
             width: 100% !important;
-            height: 60px !important;
-            font-size: 20px !important;
+            height: 70px !important;
+            min-height: 70px !important;
+            font-size: 24px !important;
             font-weight: bold !important;
             margin: 2px 0px !important;
             padding: 0px !important;
@@ -439,7 +396,7 @@ def render_keypad(cat, sub):
         if st.button("✅ Submit", type="primary", use_container_width=True): return True
     return False
 
-# --- Question Generation (EXPANDED) ---
+# --- Question Generation (FULL LOGIC) ---
 def generate_question(cat, sub):
     try:
         if cat == 'Enharmonics':
@@ -633,8 +590,10 @@ if not st.session_state.logged_in_user:
 # --- MAIN MENU ---
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
+    
     if st.session_state.logged_in_user == '오승열':
         st.caption("👑 Owner Mode Active")
+
     if st.button("Logout"):
         st.session_state.logged_in_user = None
         st.session_state.page = 'login'
@@ -737,6 +696,7 @@ if menu == "🏠 Home":
                 """, 
                 unsafe_allow_html=True
             )
+    
     st.markdown("""
     <div style='text-align: left;'>
         <h1>Road to Berklee</h1>
@@ -823,7 +783,7 @@ elif menu == "📊 Statistics":
         st.subheader("Trend")
         t_cat = st.selectbox("Category", ["All"] + list(CATEGORY_INFO.keys()))
         t_sub = None
-        if t_cat != "All": t_sub = st.selectbox("Subcategory", ["All"] + CATEGORY_INFO[t_cat])
+        if t_cat != "All": t_sub = st.selectbox("Sub", ["All"] + CATEGORY_INFO[t_cat])
         if t_sub == "All": t_sub = None
         if st.button("Analyze"):
             d = st.session_state.stat_mgr.get_trend_data(t_cat, t_sub, "weekly") 
@@ -848,6 +808,7 @@ elif menu == "🏆 Leaderboard":
 
 elif menu == "📚 Theory":
     st.header("📚 Music Theory") 
+    
     col1, col2 = st.columns([8, 2])
     t_cat = col1.selectbox("Category", list(CATEGORY_INFO.keys()))
     t_sub = col1.selectbox("Subcategory", CATEGORY_INFO[t_cat])
