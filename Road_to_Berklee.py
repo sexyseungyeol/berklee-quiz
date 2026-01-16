@@ -731,3 +731,4 @@ if st.session_state.page == 'result':
         with st.expander(f"{i} {r['q']}"):
             st.write(f"Your: {r['u']}"); st.write(f"Ans: {r['a']}")
     if st.button("Home"): st.session_state.page = 'home'; st.rerun()
+    #
