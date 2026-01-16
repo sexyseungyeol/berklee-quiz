@@ -5,6 +5,7 @@ import datetime
 from datetime import timedelta
 import hashlib
 import gspread
+import os
 
 # Cookie Manager Exception Handling
 try:
@@ -241,13 +242,12 @@ def render_keypad(cat, sub):
         cols = st.columns(len(row))
         for i, key in enumerate(row):
             cols[i].button(key, key=f"k_{key}", on_click=add_input, args=(key,), use_container_width=True)
-        if '♭' in row and '♯' in row: st.write("") # Spacer
+        if '♭' in row and '♯' in row: st.write("")
 
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 1, 2])
     c1.button("⬅️ Del", on_click=del_input)
     c2.button("❌ Clear", on_click=clear_input)
-    # [SUBMIT BUTTON LOGIC REMOVED FROM HERE] - Handled in main loop for flow
     if c3.button("✅ Submit", type="primary", use_container_width=True): return True
     return False
 
@@ -386,13 +386,9 @@ def start_quiz(cat, sub, mode, limit=0):
     st.session_state.user_input_buffer = ""; st.session_state.last_result = None; st.session_state.page = 'quiz'; st.rerun()
 
 def check_answer():
-    qs = st.session_state.quiz_state
-    q_text, ans_list, mode = qs['current_q']
-    user_set = normalize_input(st.session_state.user_input_buffer)
-    expected_set = set([str(a).lower().strip() for a in ans_list])
-    is_correct = False
+    qs = st.session_state.quiz_state; q_text, ans_list, mode = qs['current_q']
+    user_set = normalize_input(st.session_state.user_input_buffer); expected_set = set([str(a).lower().strip() for a in ans_list]); is_correct = False
     
-    # Validation Logic
     if mode == 'single': is_correct = user_set.issubset(expected_set) if user_set else False
     elif mode == 'multi':
         matched = 0
@@ -406,27 +402,19 @@ def check_answer():
         e_idxs = {get_pitch_index(a) for a in ans_list}
         is_correct = (u_idxs == e_idxs and len(u_idxs) > 0)
 
-    # Save Result & Feedback
     st.session_state.last_result = {'correct': is_correct, 'ans': ans_list}
     qs['answers'].append({'q': q_text, 'u': st.session_state.user_input_buffer, 'a': ans_list, 'c': is_correct, 'm': mode})
     if is_correct: qs['score'] += 1
     st.session_state.stat_mgr.record(qs['cat'], qs['sub'], is_correct, is_retry=False)
+    qs['current_idx'] += 1; st.session_state.user_input_buffer = ""
     
-    # Instant Advance
-    qs['current_idx'] += 1
-    st.session_state.user_input_buffer = ""
-    
-    # Check Finish
     is_finished = False
     if qs['mode'] == 'speed':
         if time.time() - qs['start_time'] >= qs['limit']: is_finished = True
     else:
         if qs['current_idx'] >= qs['limit']: is_finished = True
-    
     if is_finished: finish_quiz()
-    else:
-        qs['current_q'] = generate_question(qs['cat'], qs['sub'])
-        st.rerun()
+    else: qs['current_q'] = generate_question(qs['cat'], qs['sub']); st.rerun()
 
 def finish_quiz():
     qs = st.session_state.quiz_state; elapsed = time.time() - qs['start_time']
@@ -445,25 +433,12 @@ if menu == "🏠 Home":
 # 2. QUIZ
 elif menu == "📝 Start Quiz":
     if st.session_state.page == 'quiz':
-        # [FLASH FEEDBACK LOGIC]
         if st.session_state.last_result:
             bg_color = "rgba(0, 255, 0, 0.2)" if st.session_state.last_result['correct'] else "rgba(255, 0, 0, 0.2)"
-            st.markdown(f"""
-                <style>
-                .stApp {{
-                    animation: flash 1s forwards;
-                }}
-                @keyframes flash {{
-                    0% {{ background-color: {bg_color}; }}
-                    100% {{ background-color: transparent; }}
-                }}
-                </style>
-            """, unsafe_allow_html=True)
-            if not st.session_state.last_result['correct']:
-                st.toast(f"❌ Wrong! Answer: {st.session_state.last_result['ans']}", icon="💡")
-            else:
-                st.toast("✅ Correct!", icon="🎉")
-            st.session_state.last_result = None # Reset after showing
+            st.markdown(f"""<style>.stApp {{ animation: flash 1s forwards; }} @keyframes flash {{ 0% {{ background-color: {bg_color}; }} 100% {{ background-color: transparent; }} }}</style>""", unsafe_allow_html=True)
+            if not st.session_state.last_result['correct']: st.toast(f"❌ Wrong! Answer: {st.session_state.last_result['ans']}", icon="💡")
+            else: st.toast("✅ Correct!", icon="🎉")
+            st.session_state.last_result = None
 
         qs = st.session_state.quiz_state
         if qs['mode'] == 'speed':
@@ -475,13 +450,10 @@ elif menu == "📝 Start Quiz":
         st.subheader(qs['current_q'][0])
         st.text_input("Answer Input", value=st.session_state.user_input_buffer, disabled=True)
         
-        # [SUBMIT TRIGGER]
-        if render_keypad(qs['cat'], qs['sub']):
-            check_answer()
+        if render_keypad(qs['cat'], qs['sub']): check_answer()
             
         c1, c2 = st.columns(2)
         if c1.button("⏩ Skip"): 
-            # Skip logic: Count as wrong but move on
             qs['current_idx'] += 1; st.session_state.user_input_buffer = ""
             qs['answers'].append({'q': qs['current_q'][0], 'u': 'SKIP', 'a': qs['current_q'][1], 'c': False, 'm': 'skip'})
             qs['current_q'] = generate_question(qs['cat'], qs['sub']); st.rerun()
@@ -505,21 +477,42 @@ elif menu == "📝 Start Quiz":
             cnt = st.number_input("Count", 5)
             if st.button("Start Practice"): start_quiz(c, s, 'practice', cnt)
         with m2:
-            st.write("20 Questions"); if st.button("Start Test"): start_quiz(c, s, 'test', 20)
+            st.write("20 Questions")
+            if st.button("Start Test"): start_quiz(c, s, 'test', 20)
         with m3:
-            st.write("60 Seconds"); if st.button("Start Speed Run"): start_quiz(c, s, 'speed', 60)
+            st.write("60 Seconds")
+            if st.button("Start Speed Run"): start_quiz(c, s, 'speed', 60)
 
 # 3. STATISTICS
 elif menu == "📊 Statistics":
     st.header("📊 Statistics") 
     solved, rate = st.session_state.stat_mgr.calculate_stats(st.session_state.stat_mgr.data)
     st.metric("Solved", solved); st.metric("Accuracy", f"{rate:.1f}%")
-    # ... (Stats breakdown code same as before)
+    bd = st.session_state.stat_mgr.get_breakdown(st.session_state.stat_mgr.data)
+    for c in sorted(bd.keys()):
+        with st.expander(f"{c} ({bd[c]['correct']}/{bd[c]['total']})"):
+            for s in bd[c]['subs']:
+                sd = bd[c]['subs'][s]; st.write(f"- {s}: {(sd['correct']/sd['total']*100 if sd['total']>0 else 0):.1f}%")
+    st.subheader("Trend"); t_cat = st.selectbox("Category", ["All"] + list(CATEGORY_INFO.keys()))
+    t_sub = st.selectbox("Subcategory", ["All"] + CATEGORY_INFO[t_cat]) if t_cat != "All" else None
+    if st.button("Analyze"):
+        d = st.session_state.stat_mgr.get_trend_data(t_cat, t_sub if t_sub != "All" else None, "weekly") 
+        if d: st.line_chart({x[0]: x[1] for x in d})
+        else: st.warning("No Data")
 
 # 4. LEADERBOARD
 elif menu == "🏆 Leaderboard":
     st.header("🏆 Hall of Fame") 
-    # ... (Leaderboard code same as before)
+    l_cat = st.selectbox("Category", list(CATEGORY_INFO.keys())); l_sub = st.selectbox("Subcategory", CATEGORY_INFO[l_cat])
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("Test")
+        d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('test', [])
+        for i, r in enumerate(d): m,s = divmod(int(r['time']),60); st.write(f"**{i+1}. {r.get('username','?')}**: {r['score']}/{r['total']} ({m:02d}:{s:02d})")
+    with c2:
+        st.subheader("Speed")
+        d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('speed', [])
+        for i, r in enumerate(d): st.write(f"**{i+1}. {r.get('username','?')}**: {r['solved']} ({r['rate']:.1f}%)")
 
 # 5. THEORY
 elif menu == "📚 Theory":
@@ -531,9 +524,13 @@ elif menu == "📚 Theory":
     content = st.session_state.stat_mgr.get_theory(c, s)
     if st.session_state.edit_mode:
         new_c = st.text_area("Edit", value=content, height=400)
-        if st.button("💾 Save"): st.session_state.stat_mgr.save_theory(c, s, new_c); st.session_state.edit_mode = False; st.rerun()
-        if st.button("🔄 Reset"): st.session_state.stat_mgr.save_theory(c, s, THEORY_DATA.get(c,{}).get(s, DEFAULT_THEORY)); st.rerun()
-        if st.button("❌ Cancel"): st.session_state.edit_mode = False; st.rerun()
+        c1, c2, c3 = st.columns([1,1,2])
+        with c1:
+            if st.button("💾 Save"): st.session_state.stat_mgr.save_theory(c, s, new_c); st.session_state.edit_mode = False; st.rerun()
+        with c2:
+            if st.button("🔄 Reset"): st.session_state.stat_mgr.save_theory(c, s, THEORY_DATA.get(c,{}).get(s, DEFAULT_THEORY)); st.session_state.edit_mode = False; st.rerun()
+        with c3:
+            if st.button("❌ Cancel"): st.session_state.edit_mode = False; st.rerun()
     else: st.markdown(content, unsafe_allow_html=True)
 
 # 6. CREDITS
