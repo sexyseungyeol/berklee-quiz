@@ -16,7 +16,6 @@ NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 NATURAL_INTERVAL_DATA = {'P1': ['-2', '+7', 'P8', '+14'], 'm2': ['+1', 'm9', '+8'], 'M2': ['-3', 'M9', '-10'], 'm3': ['+2', 'm10', '+9'], 'M3': ['-4', 'M10', '-11'], 'P4': ['+3', 'P11', '+10'], 'Tritone': ['+11', '-12'], 'P5': ['-6', 'P12', '-13'], 'm6': ['+5', 'm13', '+12'], 'M6': ['-7', 'M13', '-14'], 'm7': ['+6', 'm14', '+13'], 'M7': ['-8', 'M14']}
 DISTANCE_TO_DEGREE = {1:['I'],2:['#I','bII'],3:['II'],4:['#II','bIII'],5:['III'],6:['IV'],7:['#IV','bV'],8:['V'],9:['#V','bVI'],10:['VI'],11:['#VI','bVII'],12:['VII']}
 DEGREE_MAP = {'I':0,'bII':1,'#I':1,'II':2,'bIII':3,'#II':3,'III':4,'IV':5,'#III':5,'bV':6,'#IV':6,'V':7,'bVI':8,'#V':8,'VI':9,'bVII':10,'#VI':10,'VII':11}
-# [FIXED: R_CALC_MAP Restored]
 R_CALC_MAP = {'I':0,'P1':0,'V':1,'P5':1,'II':2,'M2':2,'9':2,'VI':3,'M6':3,'13':3,'III':4,'M3':4,'VII':5,'M7':5,'#IV':6,'bV':6,'#11':6,'bII':7,'#I':7,'b9':7,'bVI':8,'#V':8,'b13':8,'bIII':9,'#II':9,'m3':9,'#9':9,'bVII':10,'m7':10,'IV':11,'P4':11,'11':11}
 ENHARMONIC_GROUPS = {0:['C','B#'],1:['Db','C#'],2:['D'],3:['Eb','D#'],4:['E','Fb'],5:['F','E#'],6:['Gb','F#'],7:['G'],8:['Ab','G#'],9:['A'],10:['Bb','A#'],11:['B','Cb']}
 SOLFEGE = {'I':'Do','II':'Re','III':'Mi','IV':'Fa','V':'Sol','VI':'La','VII':'Ti','bII':'Ra','bIII':'Me','bV':'Se','bVI':'Le','bVII':'Te','#I':'Di','#II':'Ri','#IV':'Fi','#V':'Si','#VI':'Li'}
@@ -45,6 +44,7 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
+# --- THEORY DATA (ENGLISH) ---
 THEORY_DATA = {
     'Enharmonics': {
         'Degrees': "### Enharmonic Degrees\n\nNotes that sound the same but have different names depending on the context.\n\n| Original | Enharmonic | Note (C Key) |\n| :--- | :--- | :--- |\n| **#I** | **bII** | C# = Db |\n| **#II** | **bIII** | D# = Eb |\n| **bIV** | **III** | Fb = E |\n| **#IV** | **bV** | F# = Gb |\n| **#V** | **bVI** | G# = Ab |\n| **#VI** | **bVII** | A# = Bb |\n| **bI** | **VII** | Cb = B |\n\n**Tip:** Think 'Flat = Next Degree', 'Sharp = Same Degree'.",
@@ -195,6 +195,7 @@ class StatManager:
             records = self.ws_theory.get_all_records()
             for r in records:
                 if r['category'] == category and r['subcategory'] == subcategory:
+                    # [Safety] If DB content is empty, force fallback to Code Data
                     if str(r['content']).strip(): 
                         return r['content']
             return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
@@ -652,12 +653,13 @@ def finish_quiz():
     st.session_state.page = 'result'
     st.rerun()
 
-# --- PAGE RENDERING (Logic Updated) ---
+# --- PAGE RENDERING (FIXED LOGIC) ---
 
 # 1. REAL HOME PAGE
 if menu == "🏠 Home":
-    # [FIXED: LEFT ALIGN & IMAGE]
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png", width=300)
+    col1, col2 = st.columns([1,2])
+    with col1:
+        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png", width=200)
     
     st.markdown("""
     <div style='text-align: left;'>
@@ -670,9 +672,8 @@ if menu == "🏠 Home":
 
 # 2. QUIZ SELECTION
 elif menu == "📝 Start Quiz":
-    # Check internal page state for Quiz flow
+    # If we are inside a quiz session, show the quiz UI
     if st.session_state.page == 'quiz':
-        # --- RENDER QUIZ ---
         qs = st.session_state.quiz_state
         if qs['mode'] == 'speed':
             rem = qs['limit'] - (time.time() - qs['start_time'])
@@ -700,7 +701,6 @@ elif menu == "📝 Start Quiz":
             if submitted: check_answer(st.session_state.user_input_buffer)
 
     elif st.session_state.page == 'result':
-        # --- RENDER RESULT ---
         qs = st.session_state.quiz_state
         st.header("Result")
         elapsed = time.time() - qs['start_time']; m, s = divmod(int(elapsed), 60)
@@ -715,7 +715,7 @@ elif menu == "📝 Start Quiz":
         if st.button("Home"): st.session_state.page = 'home'; st.rerun()
 
     else:
-        # --- RENDER SELECTION ---
+        # Default Selection Screen
         st.header("📝 Select Category") 
         cat_names = list(CATEGORY_INFO.keys())
         sel_cat = st.selectbox("Category", cat_names)
@@ -758,8 +758,8 @@ elif menu == "📊 Statistics":
 
 elif menu == "🏆 Leaderboard":
     st.header("🏆 Hall of Fame") 
-    l_cat = st.selectbox("Cat", list(CATEGORY_INFO.keys()))
-    l_sub = st.selectbox("Sub", CATEGORY_INFO[l_cat])
+    l_cat = st.selectbox("Category", list(CATEGORY_INFO.keys()))
+    l_sub = st.selectbox("Subcategory", CATEGORY_INFO[l_cat])
     c1, c2 = st.columns(2)
     with c1:
         st.subheader("Test")
