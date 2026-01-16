@@ -10,13 +10,12 @@ import gspread
 import extra_streamlit_components as stx
 
 # ==========================================
-# 1. 데이터 정의 (Data Definitions)
+# 1. DATA DEFINITIONS
 # ==========================================
 NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 NATURAL_INTERVAL_DATA = {'P1': ['-2', '+7', 'P8', '+14'], 'm2': ['+1', 'm9', '+8'], 'M2': ['-3', 'M9', '-10'], 'm3': ['+2', 'm10', '+9'], 'M3': ['-4', 'M10', '-11'], 'P4': ['+3', 'P11', '+10'], 'Tritone': ['+11', '-12'], 'P5': ['-6', 'P12', '-13'], 'm6': ['+5', 'm13', '+12'], 'M6': ['-7', 'M13', '-14'], 'm7': ['+6', 'm14', '+13'], 'M7': ['-8', 'M14']}
 DISTANCE_TO_DEGREE = {1:['I'],2:['#I','bII'],3:['II'],4:['#II','bIII'],5:['III'],6:['IV'],7:['#IV','bV'],8:['V'],9:['#V','bVI'],10:['VI'],11:['#VI','bVII'],12:['VII']}
 DEGREE_MAP = {'I':0,'bII':1,'#I':1,'II':2,'bIII':3,'#II':3,'III':4,'IV':5,'#III':5,'bV':6,'#IV':6,'V':7,'bVI':8,'#V':8,'VI':9,'bVII':10,'#VI':10,'VII':11}
-R_CALC_MAP = {'I':0,'P1':0,'V':1,'P5':1,'II':2,'M2':2,'9':2,'VI':3,'M6':3,'13':3,'III':4,'M3':4,'VII':5,'M7':5,'#IV':6,'bV':6,'#11':6,'bII':7,'#I':7,'b9':7,'bVI':8,'#V':8,'b13':8,'bIII':9,'#II':9,'m3':9,'#9':9,'bVII':10,'m7':10,'IV':11,'P4':11,'11':11}
 ENHARMONIC_GROUPS = {0:['C','B#'],1:['Db','C#'],2:['D'],3:['Eb','D#'],4:['E','Fb'],5:['F','E#'],6:['Gb','F#'],7:['G'],8:['Ab','G#'],9:['A'],10:['Bb','A#'],11:['B','Cb']}
 SOLFEGE = {'I':'Do','II':'Re','III':'Mi','IV':'Fa','V':'Sol','VI':'La','VII':'Ti','bII':'Ra','bIII':'Me','bV':'Se','bVI':'Le','bVII':'Te','#I':'Di','#II':'Ri','#IV':'Fi','#V':'Si','#VI':'Li'}
 KEY_SIGS_MAJOR = {'C':'','G':'#','D':'##','A':'###','E':'####','B':'#####','F#':'######','F':'b','Bb':'bb','Eb':'bbb','Ab':'bbbb','Db':'bbbbb','Gb':'bbbbbb'}
@@ -44,52 +43,53 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
+# --- THEORY DATA (ENGLISH) ---
 THEORY_DATA = {
     'Enharmonics': {
-        'Degrees': "### Enharmonic Degrees (이명동음 도수)\n\n같은 음이지만 문맥에 따라 다르게 불리는 도수들입니다.\n\n| Original | Enharmonic | Note (C Key) |\n| :--- | :--- | :--- |\n| **#I** | **bII** | C# = Db |\n| **#II** | **bIII** | D# = Eb |\n| **bIV** | **III** | Fb = E |\n| **#IV** | **bV** | F# = Gb |\n| **#V** | **bVI** | G# = Ab |\n| **#VI** | **bVII** | A# = Bb |\n| **bI** | **VII** | Cb = B |\n\n**Tip:** '플랫이 붙으면 다음 도수', '샵이 붙으면 같은 도수'라고 생각하면 쉽습니다.",
-        'Number': "### Enharmonic Interval Numbers\n\n음정 숫자도 이명동음 관계가 있습니다.\n\n* **Aug 1 (#1) ↔ Min 2 (b2)**\n* **Aug 2 (#2) ↔ Min 3 (b3)**\n* **Aug 4 (#4) ↔ Dim 5 (b5)**\n* **Aug 5 (#5) ↔ Min 6 (b6)**\n* **Dim 7 (bb7) ↔ Maj 6 (6)**\n\n특히 **Diminished 7th** 코드를 다룰 때 bb7을 6(장6도)로 빨리 환산하는 것이 중요합니다.",
-        'Interval': "### Natural Intervals (자연 음정)\n\n아무런 변화표가 없는 상태에서의 음정 간격입니다.\n\n* **m2 (단2도):** 1 semitone (E-F, B-C)\n* **M2 (장2도):** 2 semitones\n* **m3 (단3도):** 3 semitones\n* **M3 (장3도):** 4 semitones\n* **P4 (완전4도):** 5 semitones\n* **Tritone:** 6 semitones (The devil's interval)\n* **P5 (완전5도):** 7 semitones"
+        'Degrees': "### Enharmonic Degrees\n\nNotes that sound the same but have different names depending on the context.\n\n| Original | Enharmonic | Note (C Key) |\n| :--- | :--- | :--- |\n| **#I** | **bII** | C# = Db |\n| **#II** | **bIII** | D# = Eb |\n| **bIV** | **III** | Fb = E |\n| **#IV** | **bV** | F# = Gb |\n| **#V** | **bVI** | G# = Ab |\n| **#VI** | **bVII** | A# = Bb |\n| **bI** | **VII** | Cb = B |\n\n**Tip:** Think 'Flat = Next Degree', 'Sharp = Same Degree'.",
+        'Number': "### Enharmonic Interval Numbers\n\nInterval numbers also have enharmonic equivalents.\n\n* **Aug 1 (#1) ↔ Min 2 (b2)**\n* **Aug 2 (#2) ↔ Min 3 (b3)**\n* **Aug 4 (#4) ↔ Dim 5 (b5)**\n* **Aug 5 (#5) ↔ Min 6 (b6)**\n* **Dim 7 (bb7) ↔ Maj 6 (6)**\n\n**Note:** Quickly converting `bb7` to `6` (Major 6th) is crucial for Diminished 7th chords.",
+        'Interval': "### Natural Intervals\n\nDistance between notes without any accidentals.\n\n* **m2 (Minor 2nd):** 1 semitone (E-F, B-C)\n* **M2 (Major 2nd):** 2 semitones\n* **m3 (Minor 3rd):** 3 semitones\n* **M3 (Major 3rd):** 4 semitones\n* **P4 (Perfect 4th):** 5 semitones\n* **Tritone:** 6 semitones (Aug4 / Dim5)\n* **P5 (Perfect 5th):** 7 semitones"
     },
     'Warming up': {
-        'Counting semitones': "### Semitones Map\n\nRoot로부터의 거리(반음 개수)입니다.\n\n* **0:** P1\n* **1:** b2\n* **2:** M2\n* **3:** b3\n* **4:** M3\n* **5:** P4\n* **6:** b5 / #4\n* **7:** P5\n* **8:** b6 / #5\n* **9:** M6 / bb7\n* **10:** b7\n* **11:** M7\n* **12:** P8",
+        'Counting semitones': "### Semitones Map\n\nDistance from the Root in semitones.\n\n* **0:** P1\n* **1:** b2\n* **2:** M2\n* **3:** b3\n* **4:** M3\n* **5:** P4\n* **6:** b5 / #4\n* **7:** P5\n* **8:** b6 / #5\n* **9:** M6 / bb7\n* **10:** b7\n* **11:** M7\n* **12:** P8",
         'Chord tones': "### Essential Chord Formulas\n\n* **Major 7:** 1 - 3 - 5 - 7\n* **Dominant 7:** 1 - 3 - 5 - b7\n* **Minor 7:** 1 - b3 - 5 - b7\n* **m7(b5):** 1 - b3 - b5 - b7 (Half-diminished)\n* **Diminished 7:** 1 - b3 - b5 - bb7 (=6)\n* **Min(maj7):** 1 - b3 - 5 - 7",
-        'Key signatures': "### Order of Sharps & Flats\n\n**Sharps (#):** F - C - G - D - A - E - B (파도솔레라미시)\n-> 마지막 샵 바로 위 음이 으뜸음(Do)\n\n**Flats (b):** B - E - A - D - G - C - F (시미라레솔도파)\n-> 뒤에서 두 번째 플랫이 으뜸음(Do)",
-        'Solfege': "### Chromatic Solfege (Fixed Do)\n\n* **Sharps (i):** Di, Ri, Fi, Si, Li\n* **Flats (e/a):** Ra, Me, Se, Le, Te\n\n이동도법(Movable Do)에서도 이 발음 규칙은 동일하게 적용됩니다."
+        'Key signatures': "### Order of Sharps & Flats\n\n**Sharps (#):** F - C - G - D - A - E - B\n* The Key is one semitone up from the last Sharp.\n\n**Flats (b):** B - E - A - D - G - C - F\n* The Key is the second to last Flat.",
+        'Solfege': "### Chromatic Solfege (Fixed Do)\n\n* **Sharps (i sound):** Di, Ri, Fi, Si, Li\n* **Flats (e/a sound):** Ra, Me, Se, Le, Te"
     },
     'Intervals': {
-        'Alternative': "### Interval Inversions (음정의 전위)\n\n음정을 뒤집으면 성질과 숫자가 변합니다. (합이 9)\n\n* **Major (장) ↔ Minor (단)**\n* **Augmented (증) ↔ Diminished (감)**\n* **Perfect (완전) ↔ Perfect (완전)**\n\n* **2도 ↔ 7도**\n* **3도 ↔ 6도**\n* **4도 ↔ 5도**",
-        'Tracking': "### Interval Tracking\n\n특정 음에서 음정만큼 위/아래로 이동한 음을 찾는 훈련입니다.\n\n**Tip:** \n1. 먼저 알파벳(도수)을 건너뜁니다. (C에서 3도 위 -> E)\n2. 그 다음 임시표로 거리를 맞춥니다. (C에서 장3도 -> E, 단3도 -> Eb)"
+        'Alternative': "### Interval Inversions\n\nWhen inverted, the quality and number change (Sum = 9).\n\n* **Major ↔ Minor**\n* **Augmented ↔ Diminished**\n* **Perfect ↔ Perfect**\n\n* **2nd ↔ 7th**\n* **3rd ↔ 6th**\n* **4th ↔ 5th**",
+        'Tracking': "### Interval Tracking\n\nFind the target note by calculating the distance.\n\n**Tip:** \n1. Count the alphabet letters first (e.g., C to E is a 3rd).\n2. Adjust with accidentals to match the quality (e.g., Major 3rd vs Minor 3rd)."
     },
     'Chord Forms': {
-        'Relationships': "### Related Chords\n\n코드는 유기적으로 연결되어 있습니다.\n\n* **Cm7 -> C6:** b7(Bb)을 6(A)로 내림.\n* **Cm7 -> Cm7b5:** 5(G)를 b5(Gb)로 내림.\n* **Cmaj7 -> C7:** 7(B)을 b7(Bb)로 내림.\n* **Cdim7 -> C7(b9):** Root를 반음 내리면 그 키의 V7(b9)이 됨.",
-        'Extract (Degree)': "### Chord Extraction (Upper Structure)\n\n복잡한 텐션 코드에서 기본적인 7화음을 찾아내는 기술입니다.\n\n* **Cmaj9 (C E G B D)** -> 3음(E)부터 보면 **Em7 (E G B D)**\n* **C13 (C E G Bb D A)** -> b7음(Bb)부터 보면 **Bbmaj7#5** 형태 등\n\n이것은 솔로 연주나 보이싱을 잡을 때 매우 유용합니다."
+        'Relationships': "### Related Chords\n\nChords are connected by changing one note.\n\n* **Cm7 -> C6:** Lower b7(Bb) to 6(A).\n* **Cm7 -> Cm7b5:** Lower 5(G) to b5(Gb).\n* **Cmaj7 -> C7:** Lower 7(B) to b7(Bb).\n* **Cdim7 -> C7(b9):** Lowering any note of a dim7 chord by a semitone creates a Dom7(b9).",
+        'Extract (Degree)': "### Chord Extraction (Upper Structure)\n\nFinding simple triads or 7th chords within complex extensions.\n\n* **Cmaj9 (C E G B D)** -> From the 3rd(E), it's **Em7 (E G B D)**.\n* **C13 (C E G Bb D A)** -> From the b7(Bb), it looks like **Bbmaj7#5**.\n\nUseful for improvisation and voicing."
     },
     'Cycle of 5th': {
-        'P5 down': "### Cycle of Fifths (왼쪽 방향)\n\n**C - F - Bb - Eb - Ab - Db - Gb (F#) - B - E - A - D - G**\n\n* 4도 상행 또는 5도 하행 진행입니다.\n* 2-5-1 진행의 Root 움직임과 같습니다. (Dm7 - G7 - Cmaj7)\n* Flat(b)이 하나씩 늘어나는 순서입니다.",
-        '2-5-1': "### II-V-I Progression\n\n재즈의 가장 기초가 되는 진행입니다.\nTarget Note(1도)를 기준으로:\n\n* **II:** 온음 위 (W)\n* **V:** 완전5도 위 (P5) 또는 완전4도 아래"
+        'P5 down': "### Cycle of Fifths (Counter-Clockwise)\n\n**C - F - Bb - Eb - Ab - Db - Gb (F#) - B - E - A - D - G**\n\n* Moving down by Perfect 5th (or up by Perfect 4th).\n* Same root movement as II-V-I (Dm7 - G7 - Cmaj7).\n* Adds one Flat (b) each step.",
+        '2-5-1': "### II-V-I Progression\n\nThe most common progression in Jazz.\nFrom the Target Note (I):\n\n* **II:** Whole step up.\n* **V:** Perfect 5th up (or Perfect 4th down)."
     },
     'Tritones': {
-        'Pitch': "### Tritone (증4도/감5도)\n\n온음 3개 간격(3 Whole Steps)이라 Tritone이라 부릅니다.\n불안정한 소리가 나며, 해결하려는 성질이 강합니다.\n\n* C - F#\n* F - B\n* Bb - E\n* Eb - A",
-        'Dom7': "### Dominant 7 & Tritone\n\nDom7 코드의 핵심은 3음과 b7음 사이의 Tritone입니다.\n예: **G7 (G B D F)** -> B와 F가 Tritone.\n\n이 Tritone이 안쪽으로 해결되면(C, E) -> **Cmaj7**\n바깥쪽으로 벌어지며 해결되면 -> **Gbmaj7** (Tritone Sub)"
+        'Pitch': "### Tritone\n\nInterval of 3 Whole Steps (Aug 4 or Dim 5).\nIt creates tension that wants to resolve.\n\n* C - F#\n* F - B\n* Bb - E\n* Eb - A",
+        'Dom7': "### Dominant 7 & Tritone\n\nThe core of a Dom7 chord is the Tritone between the 3rd and b7.\nExample: **G7 (G B D F)** -> B and F are the Tritone.\n\n* Resolving inwards (C, E) -> **Cmaj7**\n* Resolving outwards -> **Gbmaj7** (Tritone Substitution)"
     },
     'Modes': {
-        'Alterations': "### Mode Colors (특징음)\n\n각 모드의 유니크한 느낌을 주는 음입니다.\n\n* **Ionian:** Natural (Avoid 11)\n* **Dorian:** Natural 6 (Minor key지만 6도가 장6도)\n* **Phrygian:** b2 (스페인/플라멩코 느낌)\n* **Lydian:** #4 (신비로운 느낌)\n* **Mixolydian:** b7 (블루지한 느낌)\n* **Aeolian:** b6 (슬픈 단조)\n* **Locrian:** b2, b5 (매우 불안정)",
-        'Tensions': "### Available Tensions\n\n반음 부딪힘(b9)을 피하는 것이 원칙입니다.\n\n* **Ionian:** 9, 13\n* **Dorian:** 9, 11\n* **Phrygian:** 11, b13\n* **Lydian:** 9, #11, 13 (모든 텐션 가능)\n* **Mixolydian:** 9, 13\n* **Aeolian:** 9, 11\n* **Locrian:** 11, b13"
+        'Alterations': "### Mode Colors (Characteristic Notes)\n\nNotes that define the sound of the mode.\n\n* **Ionian:** Natural (Avoid 11)\n* **Dorian:** Natural 6 (Major 6th in a Minor scale)\n* **Phrygian:** b2 (Spanish/Flamenco sound)\n* **Lydian:** #4 (Mysterious/Bright)\n* **Mixolydian:** b7 (Bluesy)\n* **Aeolian:** b6 (Sad/Natural Minor)\n* **Locrian:** b2, b5 (Unstable)",
+        'Tensions': "### Available Tensions\n\nGenerally, avoid tensions that create a b9 interval with chord tones.\n\n* **Ionian:** 9, 13\n* **Dorian:** 9, 11\n* **Phrygian:** 11, b13\n* **Lydian:** 9, #11, 13 (All available)\n* **Mixolydian:** 9, 13\n* **Aeolian:** 9, 11\n* **Locrian:** 11, b13"
     },
     'Minor': {
         'Chords': "### Minor Scale Harmony\n\n* **Natural Minor:** Im7 - IIm7b5 - bIIImaj7 - IVm7 - Vm7 - bVImaj7 - bVII7\n* **Harmonic Minor:** ImM7 ... V7(b9,b13) ... VIIdim7\n* **Melodic Minor:** ImM7 - IIm7 - bIIImaj7#5 - IV7 - V7 - VIm7b5 - VIIm7b5",
-        'Tensions': "### Minor Key Tensions\n\n마이너 키에서는 해결감이 강한 **V7 (Harmonic Minor 유래)**을 주로 사용하므로, b9, b13 같은 Altered Tension이 자연스럽게 나옵니다."
+        'Tensions': "### Minor Key Tensions\n\nIn Minor keys, **V7 (from Harmonic Minor)** is often used, introducing **b9 and b13** tensions naturally."
     },
     'Mastery': {
-        'Functions': "### Diatonic Functions\n\n* **Tonic (T):** 안정. (Imaj7, IIIm7, VIm7)\n* **Sub-Dominant (SD):** 약간 불안정, 이동. (IVmaj7, IIm7)\n* **Dominant (D):** 매우 불안정, 해결 욕구. (V7, VIIdim7)\n\n* **SDm (Sub-Dominant Minor):** 마이너 키의 감성. (IVm7, bVImaj7, bIImaj7)",
-        'Avail Scales': "### Chord Scale Theory\n\n코드의 기능에 따라 사용할 수 있는 스케일이 달라집니다.\n\n* **Imaj7:** Ionian, Lydian\n* **Im7:** Dorian, Aeolian, Phrygian\n* **V7:** Mixolydian, Altered, Lydian b7, HMP5\n* **m7b5:** Locrian, Locrian #2"
+        'Functions': "### Diatonic Functions\n\n* **Tonic (T):** Stable. (Imaj7, IIIm7, VIm7)\n* **Sub-Dominant (SD):** Moving. (IVmaj7, IIm7)\n* **Dominant (D):** Unstable, wants resolution. (V7, VIIdim7)\n\n* **SDm (Sub-Dominant Minor):** Minor key color. (IVm7, bVImaj7, bIImaj7)",
+        'Avail Scales': "### Chord Scale Theory\n\nScales match the function of the chord.\n\n* **Imaj7:** Ionian, Lydian\n* **Im7:** Dorian, Aeolian, Phrygian\n* **V7:** Mixolydian, Altered, Lydian b7, HMP5\n* **m7b5:** Locrian, Locrian #2"
     }
 }
 
 DEFAULT_THEORY = "### Practice Makes Perfect!\n\nNo specific theory content is available for this section yet.\nIf you are **Oh Seung-yeol**, you can edit this text."
 
 # ==========================================
-# 2. StatManager (DB & Logic)
+# 2. STAT MANAGER
 # ==========================================
 class StatManager:
     def __init__(self, key_file="service_account.json", sheet_name="Berklee_DB"):
@@ -298,7 +298,7 @@ class StatManager:
 if 'stat_mgr' not in st.session_state: st.session_state.stat_mgr = StatManager()
 
 # ==========================================
-# 3. 유틸리티, 키패드 및 문제 생성
+# 3. UTILS & KEYPAD & GENERATOR
 # ==========================================
 def get_enharmonic_names(idx): return ENHARMONIC_GROUPS.get(idx % 12, [])
 def get_pitch_index(pitch):
@@ -510,7 +510,7 @@ def generate_question(cat, sub):
     return None, [], 'single'
 
 # ==========================================
-# 4. Streamlit UI Logic
+# 4. UI LOGIC
 # ==========================================
 st.set_page_config(page_title="Road to Berklee", page_icon="🎹")
 
@@ -558,7 +558,7 @@ if not st.session_state.logged_in_user:
                     else: st.error(msg)
     st.stop()
 
-# --- MAIN APP ---
+# --- MAIN MENU & SIDEBAR ---
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
     
@@ -571,7 +571,8 @@ with st.sidebar:
         cookie_manager.delete("berklee_user") 
         st.rerun()
     st.markdown("---")
-    menu = st.radio("Menu", ["Home", "Statistics", "Leaderboard", "Theory", "Credits"])
+    # [MENU UPDATED: Home vs Start Quiz]
+    menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "🏆 Leaderboard", "📚 Theory", "ℹ️ Credits"])
 
 if 'quiz_state' not in st.session_state:
     st.session_state.quiz_state = {
@@ -588,7 +589,7 @@ def start_quiz(cat, sub, mode, limit=0):
         'current_q': generate_question(cat, sub),
         'feedback': None
     }
-    st.session_state.user_input_buffer = "" # Clear buffer
+    st.session_state.user_input_buffer = "" 
     st.session_state.page = 'quiz'
     st.rerun()
 
@@ -630,14 +631,12 @@ def next_question():
     qs = st.session_state.quiz_state
     qs['current_idx'] += 1
     qs['feedback'] = None
-    st.session_state.user_input_buffer = "" # Clear buffer
-    
+    st.session_state.user_input_buffer = "" 
     is_finished = False
     if qs['mode'] == 'speed':
         if time.time() - qs['start_time'] >= qs['limit']: is_finished = True
     else:
         if qs['current_idx'] >= qs['limit']: is_finished = True
-        
     if is_finished: finish_quiz()
     else:
         qs['current_q'] = generate_question(qs['cat'], qs['sub'])
@@ -653,113 +652,133 @@ def finish_quiz():
     st.session_state.page = 'result'
     st.rerun()
 
-# --- Pages ---
-if st.session_state.page == 'home' or menu == "Home":
-    if menu == "Home":
-        st.header("🎹 Select Category") 
-        cat_names = list(CATEGORY_INFO.keys())
-        sel_cat = st.selectbox("Category", cat_names)
-        if sel_cat:
-            sel_sub = st.selectbox("Subcategory", CATEGORY_INFO[sel_cat])
-            st.subheader("Quiz Mode")
-            m1, m2, m3 = st.tabs(["Practice", "Test (20Q)", "Speed Run (60s)"])
-            with m1:
-                cnt = st.number_input("Count", 5)
-                if st.button("Start Practice"): start_quiz(sel_cat, sel_sub, 'practice', cnt)
-            with m2:
-                st.write("20 Questions, No Feedback."); 
-                if st.button("Start Test"): start_quiz(sel_cat, sel_sub, 'test', 20)
-            with m3:
-                st.write("60 Seconds."); 
-                if st.button("Start Speed Run"): start_quiz(sel_cat, sel_sub, 'speed', 60)
-    elif menu == "Statistics":
-        st.header("📊 Statistics") 
-        t1, t2 = st.tabs(["Cumulative", "Trend"])
-        with t1:
-            solved, rate = st.session_state.stat_mgr.calculate_stats(st.session_state.stat_mgr.data)
-            st.metric("Solved", solved); st.metric("Accuracy", f"{rate:.1f}%")
-            bd = st.session_state.stat_mgr.get_breakdown(st.session_state.stat_mgr.data)
-            for c in sorted(bd.keys()):
-                with st.expander(f"{c} ({bd[c]['correct']}/{bd[c]['total']})"):
-                    for s in bd[c]['subs']:
-                        sd = bd[c]['subs'][s]
-                        st.write(f"- {s}: {(sd['correct']/sd['total']*100 if sd['total']>0 else 0):.1f}%")
-        with t2:
-            st.subheader("Trend")
-            t_cat = st.selectbox("Category", ["All"] + list(CATEGORY_INFO.keys()))
-            t_sub = None
-            if t_cat != "All": t_sub = st.selectbox("Sub", ["All"] + CATEGORY_INFO[t_cat])
-            if t_sub == "All": t_sub = None
-            if st.button("Analyze"):
-                d = st.session_state.stat_mgr.get_trend_data(t_cat, t_sub, "weekly") # Default weekly
-                if d: st.line_chart({x[0]: x[1] for x in d})
-                else: st.warning("No Data")
-    elif menu == "Leaderboard":
-        st.header("🏆 Hall of Fame") 
-        l_cat = st.selectbox("Cat", list(CATEGORY_INFO.keys()))
-        l_sub = st.selectbox("Sub", CATEGORY_INFO[l_cat])
-        c1, c2 = st.columns(2)
-        with c1:
-            st.subheader("Test")
-            d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('test', [])
-            for i, r in enumerate(d):
-                m,s = divmod(int(r['time']),60)
-                st.write(f"**{i+1}. {r.get('username','?')}**: {r['score']}/{r['total']} ({m:02d}:{s:02d})")
-        with c2:
-            st.subheader("Speed")
-            d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('speed', [])
-            for i, r in enumerate(d): st.write(f"**{i+1}. {r.get('username','?')}**: {r['solved']} ({r['rate']:.1f}%)")
+# --- PAGE RENDERING ---
+
+# 1. REAL HOME PAGE
+if "Home" in menu:
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        # Berklee Logo from Wikimedia (Stable URL)
+        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png")
     
-    # --- THEORY PAGE (CMS) ---
-    elif menu == "Theory":
-        st.header("📚 Music Theory") 
-        
-        col1, col2 = st.columns([8, 2])
-        t_cat = col1.selectbox("Category", list(CATEGORY_INFO.keys()))
-        t_sub = col1.selectbox("Subcategory", CATEGORY_INFO[t_cat])
-        
-        if st.session_state.logged_in_user == '오승열':
-            if not st.session_state.edit_mode:
-                if col2.button("✏️ Edit"):
-                    st.session_state.edit_mode = True
-                    st.rerun()
+    st.markdown("""
+    <div style='text-align: center;'>
+        <h1>Road to Berklee</h1>
+        <h3>Music Theory practicing application</h3>
+        <br>
+        <p>Master your intervals, chords, scales, and more.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-        st.markdown("---")
-        current_content = st.session_state.stat_mgr.get_theory(t_cat, t_sub)
+# 2. QUIZ SELECTION (Formerly Home)
+elif "Start Quiz" in menu or st.session_state.page == 'home':
+    st.header("📝 Select Category") 
+    cat_names = list(CATEGORY_INFO.keys())
+    sel_cat = st.selectbox("Category", cat_names)
+    if sel_cat:
+        sel_sub = st.selectbox("Subcategory", CATEGORY_INFO[sel_cat])
+        st.subheader("Quiz Mode")
+        m1, m2, m3 = st.tabs(["Practice", "Test (20Q)", "Speed Run (60s)"])
+        with m1:
+            cnt = st.number_input("Count", 5)
+            if st.button("Start Practice"): start_quiz(sel_cat, sel_sub, 'practice', cnt)
+        with m2:
+            st.write("20 Questions, No Feedback."); 
+            if st.button("Start Test"): start_quiz(sel_cat, sel_sub, 'test', 20)
+        with m3:
+            st.write("60 Seconds."); 
+            if st.button("Start Speed Run"): start_quiz(sel_cat, sel_sub, 'speed', 60)
+
+elif "Statistics" in menu:
+    st.header("📊 Statistics") 
+    t1, t2 = st.tabs(["Cumulative", "Trend"])
+    with t1:
+        solved, rate = st.session_state.stat_mgr.calculate_stats(st.session_state.stat_mgr.data)
+        st.metric("Solved", solved); st.metric("Accuracy", f"{rate:.1f}%")
+        bd = st.session_state.stat_mgr.get_breakdown(st.session_state.stat_mgr.data)
+        for c in sorted(bd.keys()):
+            with st.expander(f"{c} ({bd[c]['correct']}/{bd[c]['total']})"):
+                for s in bd[c]['subs']:
+                    sd = bd[c]['subs'][s]
+                    st.write(f"- {s}: {(sd['correct']/sd['total']*100 if sd['total']>0 else 0):.1f}%")
+    with t2:
+        st.subheader("Trend")
+        t_cat = st.selectbox("Category", ["All"] + list(CATEGORY_INFO.keys()))
+        t_sub = None
+        if t_cat != "All": t_sub = st.selectbox("Sub", ["All"] + CATEGORY_INFO[t_cat])
+        if t_sub == "All": t_sub = None
+        if st.button("Analyze"):
+            d = st.session_state.stat_mgr.get_trend_data(t_cat, t_sub, "weekly") 
+            if d: st.line_chart({x[0]: x[1] for x in d})
+            else: st.warning("No Data")
+
+elif "Leaderboard" in menu:
+    st.header("🏆 Hall of Fame") 
+    l_cat = st.selectbox("Cat", list(CATEGORY_INFO.keys()))
+    l_sub = st.selectbox("Sub", CATEGORY_INFO[l_cat])
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("Test")
+        d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('test', [])
+        for i, r in enumerate(d):
+            m,s = divmod(int(r['time']),60)
+            st.write(f"**{i+1}. {r.get('username','?')}**: {r['score']}/{r['total']} ({m:02d}:{s:02d})")
+    with c2:
+        st.subheader("Speed")
+        d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('speed', [])
+        for i, r in enumerate(d): st.write(f"**{i+1}. {r.get('username','?')}**: {r['solved']} ({r['rate']:.1f}%)")
+
+# --- THEORY PAGE (CMS) ---
+elif "Theory" in menu:
+    st.header("📚 Music Theory") 
+    
+    col1, col2 = st.columns([8, 2])
+    t_cat = col1.selectbox("Category", list(CATEGORY_INFO.keys()))
+    t_sub = col1.selectbox("Subcategory", CATEGORY_INFO[t_cat])
+    
+    if st.session_state.logged_in_user == '오승열':
+        if not st.session_state.edit_mode:
+            if col2.button("✏️ Edit"):
+                st.session_state.edit_mode = True
+                st.rerun()
+
+    st.markdown("---")
+    current_content = st.session_state.stat_mgr.get_theory(t_cat, t_sub)
+    
+    if st.session_state.edit_mode and st.session_state.logged_in_user == '오승열':
+        st.warning("🛠️ Editing Mode")
+        new_content = st.text_area("Markdown Content", value=current_content, height=400)
         
-        if st.session_state.edit_mode and st.session_state.logged_in_user == '오승열':
-            st.warning("🛠️ Editing Mode")
-            new_content = st.text_area("Markdown Content", value=current_content, height=400)
-            
-            # [NEW: RESET BUTTON ADDED]
-            c1, c2, c3 = st.columns([1,1,2])
-            with c1:
-                if st.button("💾 Save"):
-                    if st.session_state.stat_mgr.save_theory(t_cat, t_sub, new_content):
-                        st.success("Saved!")
-                        st.session_state.edit_mode = False
-                        time.sleep(0.5)
-                        st.rerun()
-                    else: st.error("Error saving.")
-            with c2:
-                if st.button("🔄 Reset"): # This fixes empty DB issues
-                    default_text = THEORY_DATA.get(t_cat, {}).get(t_sub, DEFAULT_THEORY)
-                    if st.session_state.stat_mgr.save_theory(t_cat, t_sub, default_text):
-                        st.success("Reset to Default!")
-                        st.session_state.edit_mode = False
-                        time.sleep(0.5)
-                        st.rerun()
-            with c3:
-                if st.button("❌ Cancel"):
+        c1, c2, c3 = st.columns([1,1,2])
+        with c1:
+            if st.button("💾 Save"):
+                if st.session_state.stat_mgr.save_theory(t_cat, t_sub, new_content):
+                    st.success("Saved!")
                     st.session_state.edit_mode = False
+                    time.sleep(0.5)
                     st.rerun()
-        else:
-            st.markdown(current_content, unsafe_allow_html=True)
+                else: st.error("Error saving.")
+        with c2:
+            # [RESET BUTTON] Updates DB with the English Default Text
+            if st.button("🔄 Reset"):
+                default_text = THEORY_DATA.get(t_cat, {}).get(t_sub, DEFAULT_THEORY)
+                if st.session_state.stat_mgr.save_theory(t_cat, t_sub, default_text):
+                    st.success("Reset to Default (English)!")
+                    st.session_state.edit_mode = False
+                    time.sleep(0.5)
+                    st.rerun()
+        with c3:
+            if st.button("❌ Cancel"):
+                st.session_state.edit_mode = False
+                st.rerun()
+    else:
+        st.markdown(current_content, unsafe_allow_html=True)
 
-    elif menu == "Credits":
-        st.header("ℹ️ Credits")
-        st.write("Created by: Oh Seung-yeol")
+elif "Credits" in menu:
+    st.header("ℹ️ Credits")
+    st.write("Created by: Oh Seung-yeol")
 
+# --- QUIZ & RESULT PAGES ---
 if st.session_state.page == 'quiz':
     qs = st.session_state.quiz_state
     if qs['mode'] == 'speed':
