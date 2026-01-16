@@ -8,7 +8,7 @@ from datetime import timedelta
 import hashlib
 import gspread
 
-# 쿠키 매니저 예외 처리
+# Cookie Manager Exception Handling
 try:
     import extra_streamlit_components as stx
 except ImportError:
@@ -175,8 +175,7 @@ class StatManager:
             for r in records:
                 if r['category'] == category and r['subcategory'] == subcategory:
                     val = str(r['content']).strip()
-                    if val: return val # If DB has valid text, use it
-            # Force fallback to THEORY_DATA if DB row is missing or empty
+                    if val: return val
             return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
         except: return DEFAULT_THEORY
 
@@ -294,7 +293,6 @@ def normalize_input(text):
     text = text.replace('♭', 'b').replace('♯', '#')
     return set([p.strip().lower() for p in text.replace('/',',').split(',') if p.strip()])
 
-# --- Virtual Keypad Logic ---
 def get_keypad_keys(cat, sub):
     if (cat == 'Enharmonics' and sub == 'Degrees') or \
        (cat == 'Warming up' and sub == 'Finding degrees') or \
@@ -321,16 +319,8 @@ def render_keypad(cat, sub):
     key_rows = get_keypad_keys(cat, sub)
     st.markdown("""
         <style>
-        div.stButton > button {
-            width: 100% !important;
-            height: 50px;
-            margin: 0px !important;
-            font-size: 18px;
-        }
-        [data-testid="column"] {
-            padding: 0px 5px !important;
-            min-width: 0 !important;
-        }
+        div.stButton > button { width: 100% !important; height: 50px; margin: 0px !important; font-size: 18px; }
+        [data-testid="column"] { padding: 0px 5px !important; min-width: 0 !important; }
         </style>
     """, unsafe_allow_html=True)
     for row_keys in key_rows:
@@ -342,35 +332,25 @@ def render_keypad(cat, sub):
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 1, 2])
     with c1:
-        if st.button("⬅️ Del"):
-            st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1]; st.rerun()
+        if st.button("⬅️ Del"): st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1]; st.rerun()
     with c2:
-        if st.button("❌ Clear"):
-            st.session_state.user_input_buffer = ""; st.rerun()
+        if st.button("❌ Clear"): st.session_state.user_input_buffer = ""; st.rerun()
     with c3:
         if st.button("✅ Submit", type="primary", use_container_width=True): return True
     return False
 
-# --- Question Generation ---
 def generate_question(cat, sub):
     try:
         if cat == 'Enharmonics':
             if sub == 'Degrees':
                 pairs = [('#VII','I'),('#I','bII'),('#II','bIII'),('bIV','III'),('IV','#III'),('#V','bVI'),('#VI','bVII')]
-                t, a = random.choice(pairs)
-                return f"What is {t}'s enharmonic?", [a], 'single'
+                t, a = random.choice(pairs); return f"What is {t}'s enharmonic?", [a], 'single'
             elif sub == 'Number':
-                # [FIXED: Full scale sets added]
-                sets = [
-                    ['1','8','bb2'],['#1','b2','#8','b9'],['2','9','bb3'],['#2','b3','#9','b10'],
-                    ['3','10','b4'],['4','11','#3'],['#4','b5','#11','b12'],['5','12','bb6'],
-                    ['#5','b6','#12','b13'],['6','13','bb7'],['#6','b7','#13','b14'],['7','14','b8','b1']
-                ]
+                sets = [['1','8','bb2'],['#1','b2','#8','b9'],['2','9','bb3'],['#2','b3','#9','b10'],['3','10','b4'],['4','11','#3'],['#4','b5','#11','b12'],['5','12','bb6'],['#5','b6','#12','b13'],['6','13','bb7'],['#6','b7','#13','b14'],['7','14','b8','b1']]
                 c = random.choice(sets); t = random.choice(c); ans = [x for x in c if x!=t]
                 return f"What are {t}'s enharmonics?", ans, 'single'
             elif sub == 'Interval':
-                k = random.choice(list(NATURAL_INTERVAL_DATA.keys()))
-                q = random.choice(NATURAL_INTERVAL_DATA[k])
+                k = random.choice(list(NATURAL_INTERVAL_DATA.keys())); q = random.choice(NATURAL_INTERVAL_DATA[k])
                 return f"What is {q}'s natural form?", [k], 'single'
         elif cat == 'Warming up':
             if sub == 'Counting semitones':
@@ -379,8 +359,7 @@ def generate_question(cat, sub):
                 dn, dv = random.choice(list(DEGREE_MAP.items())); p = random.choice(NOTES)
                 idx = (get_pitch_index(p) + dv) % 12; return f"What is {dn} of {p} Key?", get_enharmonic_names(idx), 'single'
             elif sub == 'Chord tones':
-                p=random.choice(NOTES); ct=random.choice(list(CHORD_FORMULAS.keys())); idx=get_pitch_index(p)
-                ans=[]; 
+                p=random.choice(NOTES); ct=random.choice(list(CHORD_FORMULAS.keys())); idx=get_pitch_index(p); ans=[]
                 for interval in CHORD_FORMULAS[ct]: ans.append(get_pitch_from_index((idx+interval)%12))
                 return f"What are the Chord tones of {p}{ct}? (Separate by comma)", ans, 'all_indices'
             elif sub == 'Key signatures':
@@ -389,8 +368,7 @@ def generate_question(cat, sub):
             elif sub == 'Solfege':
                 k,v = random.choice(list(SOLFEGE.items())); return f"What is {k}'s solfege?", [v], 'single'
         elif cat == 'Intervals':
-            root = random.choice(NOTES)
-            data = [('m2',1,'M7'),('M2',2,'m7'),('m3',3,'M6'),('M3',4,'m6'),('P4',5,'P5'),('P5',7,'P4'),('m6',8,'M3'),('M6',9,'m3'),('m7',10,'M2'),('M7',11,'m2')]
+            root = random.choice(NOTES); data = [('m2',1,'M7'),('M2',2,'m7'),('m3',3,'M6'),('M3',4,'m6'),('P4',5,'P5'),('P5',7,'P4'),('m6',8,'M3'),('M6',9,'m3'),('m7',10,'M2'),('M7',11,'m2')]
             q_int, semis, inv_int = random.choice(data)
             if sub == 'Alternative':
                 idx = (get_pitch_index(root)+semis)%12; return f"What's the alternative to {root}{q_int}?", get_valid_answers(idx, inv_int), 'single'
@@ -405,18 +383,15 @@ def generate_question(cat, sub):
                 elif q_type == 3: return (f"How do you change {root}m6 into a m7b5 chord?", get_valid_answers(ridx - 3, "m7b5"), 'single') if random.choice([True,False]) else (f"How do you change {root}6 into a m7 chord?", get_valid_answers(ridx - 3, "m7"), 'single')
                 elif q_type == 4: return f"How do you change {root}6#11 into a m7b5 chord?", get_valid_answers(ridx + 6, "m7b5"), 'single'
             elif sub == 'Extract (Degree)':
-                d_name, d_val = random.choice(list(DEGREE_MAP.items()))
-                target = (d_val + 4) % 12; ans = [f"{k}m7b5" for k, v in DEGREE_MAP.items() if v == target]
+                d_name, d_val = random.choice(list(DEGREE_MAP.items())); target = (d_val + 4) % 12; ans = [f"{k}m7b5" for k, v in DEGREE_MAP.items() if v == target]
                 return f"Which m7b5 chord can be extracted from {d_name}7(9)?", ans, 'single'
-            elif sub == 'Extract (Pitch)':
-                return f"Which m7b5 chord can be extracted from {root}7?", get_valid_answers((ridx + 4) % 12, "m7b5"), 'single'
+            elif sub == 'Extract (Pitch)': return f"Which m7b5 chord can be extracted from {root}7?", get_valid_answers((ridx + 4) % 12, "m7b5"), 'single'
             elif sub == '9 chord':
                 qt = random.choice(['maj7', '7', 'm7'])
                 if qt == 'maj7': return f"How can {root}maj7(9) be expanded? (Separate by comma)", [get_slash_answers(ridx+4, "m7", ridx), get_slash_answers(ridx+7, "6", ridx)], 'multi'
                 elif qt == '7': return f"How can {root}7(9) be expanded? (Separate by comma)", [get_slash_answers(ridx+4, "m7b5", ridx), get_slash_answers(ridx+10, "6#11", ridx)], 'multi'
                 else: return f"How can {root}m7(9) be expanded?", get_slash_answers(ridx+3, "maj7", ridx), 'single'
-            elif sub == 'Rootless':
-                return f"What is the 7sus4 chord for Rootless {root}6(9)?", get_valid_answers(ridx - 3, "7sus4"), 'single'
+            elif sub == 'Rootless': return f"What is the 7sus4 chord for Rootless {root}6(9)?", get_valid_answers(ridx - 3, "7sus4"), 'single'
         elif cat == 'Cycle of 5th':
             p=random.choice(NOTES); idx=get_pitch_index(p)
             if sub == 'P5 down': return f"Pitch P5 down from {p}?", get_enharmonic_names(idx-7), 'single'
@@ -437,8 +412,7 @@ def generate_question(cat, sub):
             p=random.choice(NOTES); pidx=get_pitch_index(p)
             if sub == 'Pitch': return f"What is the tritone of {p}?", get_enharmonic_names(pidx+6), 'single'
             if sub == 'Degree':
-                dn, dv = random.choice(list(DEGREE_MAP.items()))
-                return f"What is the tritone of {dn}?", [k for k,v in DEGREE_MAP.items() if v==(dv+6)%12], 'single'
+                dn, dv = random.choice(list(DEGREE_MAP.items())); return f"What is the tritone of {dn}?", [k for k,v in DEGREE_MAP.items() if v==(dv+6)%12], 'single'
             if sub == 'Dom7':
                 p1=p; p2=get_pitch_from_index(pidx+6); r1=(pidx-4)%12; r2=(pidx+2)%12 
                 return f"What Dom7 from ({p1}, {p2})? (Separate by comma)", [get_valid_answers(r1,'7'), get_valid_answers(r2,'7')], 'multi'
@@ -453,17 +427,14 @@ def generate_question(cat, sub):
                 return f"Alterations in {m}?", MODE_ALTERATIONS.get(m,[]), 'all'
             if sub == 'Tensions': return f"Tensions of {m}?", MODE_TENSIONS.get(m,[]), 'all'
             if sub == 'Chords(Deg)':
-                idx=random.randint(0,6); ords=['Ist','IInd','IIIrd','IVth','Vth','VIth','VIIth']
-                quals=['maj7','m7','m7','maj7','7','m7','m7b5']; shift=list(SCALES_DATA.keys()).index(m)
+                idx=random.randint(0,6); ords=['Ist','IInd','IIIrd','IVth','Vth','VIth','VIIth']; quals=['maj7','m7','m7','maj7','7','m7','m7b5']; shift=list(SCALES_DATA.keys()).index(m)
                 return f"What is {ords[idx]} chord in {m}?", [f"{SCALES_DATA[m][idx]}{quals[(idx+shift)%7]}"], 'single'
             if sub == 'Chords(Key)':
-                k=random.choice(NOTES); idx=random.randint(0,6); ords=['Ist','IInd','IIIrd','IVth','Vth','VIth','VIIth']
-                quals=['maj7','m7','m7','maj7','7','m7','m7b5']; shift=list(SCALES_DATA.keys()).index(m)
+                k=random.choice(NOTES); idx=random.randint(0,6); ords=['Ist','IInd','IIIrd','IVth','Vth','VIth','VIIth']; quals=['maj7','m7','m7','maj7','7','m7','m7b5']; shift=list(SCALES_DATA.keys()).index(m)
                 d_val = DEGREE_MAP[SCALES_DATA[m][idx]]; tidx=(get_pitch_index(k)+d_val)%12
                 return f"{ords[idx]} chord in {k} {m}?", get_valid_answers(tidx, quals[(idx+shift)%7]), 'single'
         elif cat == 'Minor':
-            mt = random.choice(list(MINOR_DATA.keys())); idx=random.randint(0,2)
-            d = MINOR_DATA[mt]['degrees'][idx]; q = MINOR_DATA[mt]['chords'][idx]
+            mt = random.choice(list(MINOR_DATA.keys())); idx=random.randint(0,2); d = MINOR_DATA[mt]['degrees'][idx]; q = MINOR_DATA[mt]['chords'][idx]
             if sub == 'Chords': return f"{d} chord in {mt} scale?", [f"{d}{q}"], 'single'
             if sub == 'Tensions': return f"Tensions of {d}{q} in {mt}?", MINOR_DATA[mt]['tens'][idx], 'all'
             if sub == 'Pitch':
@@ -473,24 +444,16 @@ def generate_question(cat, sub):
             if sub == 'Functions':
                 f=random.choice(list(CHORD_FUNCTIONS.keys())); c=random.choice(CHORD_FUNCTIONS[f])
                 return f"Function of {c}?", DUAL_FUNCTION_CHORDS.get(c, [f]), 'all' if c in DUAL_FUNCTION_CHORDS else 'single'
-            if sub == 'Degrees':
-                s=random.choice(list(SCALES_DATA.keys())); return f"Degrees of {s}?", SCALES_DATA[s], 'all'
+            if sub == 'Degrees': s=random.choice(list(SCALES_DATA.keys())); return f"Degrees of {s}?", SCALES_DATA[s], 'all'
             if sub == 'Pitches':
-                s=random.choice(list(SCALES_DATA.keys())); k=random.choice(NOTES); kidx=get_pitch_index(k)
-                ans = [get_pitch_from_index(kidx+DEGREE_MAP.get(d,0)) for d in SCALES_DATA[s]]
+                s=random.choice(list(SCALES_DATA.keys())); k=random.choice(NOTES); kidx=get_pitch_index(k); ans = [get_pitch_from_index(kidx+DEGREE_MAP.get(d,0)) for d in SCALES_DATA[s]]
                 return f"Pitches of {k} {s}?", ans, 'all_indices'
-            if sub == 'Avail Scales':
-                s=random.choice(list(AVAILABLE_SCALES_MAP.keys())); c=random.choice(AVAILABLE_SCALES_MAP[s])
-                return f"Which scale uses {c}?", [s], 'single'
+            if sub == 'Avail Scales': s=random.choice(list(AVAILABLE_SCALES_MAP.keys())); c=random.choice(AVAILABLE_SCALES_MAP[s]); return f"Which scale uses {c}?", [s], 'single'
             if sub == 'Pivot':
-                ct=random.choice(['maj7','7','m7','m7b5']); sdn=random.choice(list(DEGREE_MAP.keys())); sdv=DEGREE_MAP[sdn]
-                offsets={'maj7':[0,7],'m7':[10,8,3,0,5,7],'7':[5,10],'m7b5':[11,2,6]}[ct]
-                ans = [k for k,v in DEGREE_MAP.items() if v in [(sdv+o)%12 for o in offsets]]
+                ct=random.choice(['maj7','7','m7','m7b5']); sdn=random.choice(list(DEGREE_MAP.keys())); sdv=DEGREE_MAP[sdn]; offsets={'maj7':[0,7],'m7':[10,8,3,0,5,7],'7':[5,10],'m7b5':[11,2,6]}[ct]; ans = [k for k,v in DEGREE_MAP.items() if v in [(sdv+o)%12 for o in offsets]]
                 return f"Keys having {sdn}{ct} as pivot?", ans, 'all'
             if sub == 'Similarities':
-                sm=random.choice(list(MODE_OFFSET_MAP.keys())); tm=random.choice(list(MODE_OFFSET_MAP.keys()))
-                sp=random.choice(NOTES); diff = MODE_OFFSET_MAP[tm] - MODE_OFFSET_MAP[sm]
-                tidx = (get_pitch_index(sp)+diff)%12
+                sm=random.choice(list(MODE_OFFSET_MAP.keys())); tm=random.choice(list(MODE_OFFSET_MAP.keys())); sp=random.choice(NOTES); diff = MODE_OFFSET_MAP[tm] - MODE_OFFSET_MAP[sm]; tidx = (get_pitch_index(sp)+diff)%12
                 return f"Which {tm} shares tones with {sp} {sm}?", [f"{p} {tm}" for p in get_enharmonic_names(tidx)], 'single'
     except Exception as e: return f"Error: {e}", [], 'single'
     return None, [], 'single'
@@ -499,7 +462,6 @@ def generate_question(cat, sub):
 # 4. UI LOGIC
 # ==========================================
 st.set_page_config(page_title="Road to Berklee", page_icon="🎹")
-
 cookie_manager = stx.CookieManager()
 
 if 'logged_in_user' not in st.session_state: st.session_state.logged_in_user = None
@@ -515,7 +477,6 @@ if st.session_state.logged_in_user is None:
             st.session_state.page = 'home'
             time.sleep(0.5); st.rerun()
 
-# --- LOGIN / SIGNUP ---
 if not st.session_state.logged_in_user:
     st.title("🎹 Road to Berklee")
     st.subheader("Login / Sign Up")
@@ -528,35 +489,29 @@ if not st.session_state.logged_in_user:
                 pwd = st.text_input("Password", type="password")
                 if st.form_submit_button("Login"):
                     if st.session_state.stat_mgr.login_user(user, pwd):
-                        st.session_state.logged_in_user = user
-                        st.session_state.page = 'home'
+                        st.session_state.logged_in_user = user; st.session_state.page = 'home'
                         cookie_manager.set("berklee_user", user, expires_at=datetime.datetime.now() + datetime.timedelta(days=30))
                         st.success(f"Welcome, {user}!"); time.sleep(1); st.rerun()
                     else: st.error("Invalid Username or Password.")
         with tab2:
             with st.form("signup_form"):
-                new_user = st.text_input("New Username")
-                new_pwd = st.text_input("New Password", type="password")
+                new_user = st.text_input("New Username"); new_pwd = st.text_input("New Password", type="password")
                 if st.form_submit_button("Create Account"):
                     success, msg = st.session_state.stat_mgr.create_user(new_user, new_pwd)
                     if success: st.success(msg)
                     else: st.error(msg)
     st.stop()
 
-# --- MAIN MENU & SIDEBAR ---
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
     if st.session_state.logged_in_user == '오승열': st.caption("👑 Owner Mode Active")
     if st.button("Logout"):
-        st.session_state.logged_in_user = None; st.session_state.page = 'login'
-        cookie_manager.delete("berklee_user"); st.rerun()
+        st.session_state.logged_in_user = None; st.session_state.page = 'login'; cookie_manager.delete("berklee_user"); st.rerun()
     st.markdown("---")
     menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "🏆 Leaderboard", "📚 Theory", "ℹ️ Credits"])
 
 if 'quiz_state' not in st.session_state:
-    st.session_state.quiz_state = {
-        'active': False, 'cat': '', 'sub': '', 'mode': '', 'q_list': [], 'current_idx': 0, 'score': 0, 'start_time': 0, 'wrong_list': [], 'answers': [], 'limit': 0, 'feedback': None
-    }
+    st.session_state.quiz_state = {'active': False, 'cat': '', 'sub': '', 'mode': '', 'q_list': [], 'current_idx': 0, 'score': 0, 'start_time': 0, 'wrong_list': [], 'answers': [], 'limit': 0, 'feedback': None}
 
 def start_quiz(cat, sub, mode, limit=0):
     st.session_state.quiz_state = {'active': True, 'cat': cat, 'sub': sub, 'mode': mode, 'current_idx': 0, 'score': 0, 'start_time': time.time(), 'wrong_list': [], 'answers': [], 'limit': limit, 'current_q': generate_question(cat, sub), 'feedback': None}
@@ -604,18 +559,16 @@ def finish_quiz():
     elif qs['mode'] == 'speed': st.session_state.stat_mgr.update_leaderboard('speed', qs['cat'], qs['sub'], {'correct': qs['score'], 'total_try': qs['current_idx']})
     st.session_state.page = 'result'; st.rerun()
 
-# --- PAGE RENDERING ---
-
-# 1. HOME
-if "Home" in menu:
+# 1. REAL HOME PAGE
+if menu == "🏠 Home":
     col1, col2 = st.columns([1, 2])
     with col1:
         if os.path.exists("logo.png"): st.image("logo.png", width=200)
         else: st.markdown("""<div style="background-color: white; padding: 10px; border-radius: 10px; width: fit-content;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png" width="150"></div>""", unsafe_allow_html=True)
     st.markdown("<div style='text-align: left;'><h1>Road to Berklee</h1><h3>Music Theory practicing application</h3><br><p>Master your intervals, chords, scales, and more.</p></div>", unsafe_allow_html=True)
 
-# 2. QUIZ
-elif "Start Quiz" in menu:
+# 2. QUIZ SELECTION
+elif menu == "📝 Start Quiz":
     if st.session_state.page == 'quiz':
         qs = st.session_state.quiz_state
         if qs['mode'] == 'speed':
@@ -645,9 +598,8 @@ elif "Start Quiz" in menu:
         elapsed = time.time() - qs['start_time']; m, s = divmod(int(elapsed), 60); st.write(f"Time: {m:02d}:{s:02d}")
         sc = qs['score']; tot = len(qs['answers']) if qs['mode']!='speed' else qs['current_idx']
         st.metric("Score", f"{sc}/{tot}", f"{(sc/tot*100) if tot>0 else 0:.1f}%")
-        st.subheader("Review")
         for r in qs['answers']:
-            c = "green" if r['c'] else "red"; i = "✅" if r['c'] else "❌"
+            i = "✅" if r['c'] else "❌"
             with st.expander(f"{i} {r['q']}"): st.write(f"Your: {r['u']}"); st.write(f"Ans: {r['a']}")
         if st.button("Home"): st.session_state.page = 'home'; st.rerun()
     else:
@@ -660,12 +612,14 @@ elif "Start Quiz" in menu:
                 cnt = st.number_input("Count", 5)
                 if st.button("Start Practice"): start_quiz(sel_cat, sel_sub, 'practice', cnt)
             with m2:
-                st.write("20 Questions, No Feedback."); if st.button("Start Test"): start_quiz(sel_cat, sel_sub, 'test', 20)
+                st.write("20 Questions, No Feedback.")
+                if st.button("Start Test"): start_quiz(sel_cat, sel_sub, 'test', 20)
             with m3:
-                st.write("60 Seconds."); if st.button("Start Speed Run"): start_quiz(sel_cat, sel_sub, 'speed', 60)
+                st.write("60 Seconds.")
+                if st.button("Start Speed Run"): start_quiz(sel_cat, sel_sub, 'speed', 60)
 
 # 3. STATISTICS
-elif "Statistics" in menu:
+elif menu == "📊 Statistics":
     st.header("📊 Statistics") 
     t1, t2 = st.tabs(["Cumulative", "Trend"])
     with t1:
@@ -685,7 +639,7 @@ elif "Statistics" in menu:
             else: st.warning("No Data")
 
 # 4. LEADERBOARD
-elif "Leaderboard" in menu:
+elif menu == "🏆 Leaderboard":
     st.header("🏆 Hall of Fame") 
     l_cat = st.selectbox("Category", list(CATEGORY_INFO.keys())); l_sub = st.selectbox("Subcategory", CATEGORY_INFO[l_cat])
     c1, c2 = st.columns(2)
@@ -699,7 +653,7 @@ elif "Leaderboard" in menu:
         for i, r in enumerate(d): st.write(f"**{i+1}. {r.get('username','?')}**: {r['solved']} ({r['rate']:.1f}%)")
 
 # 5. THEORY
-elif "Theory" in menu:
+elif menu == "📚 Theory":
     st.header("📚 Music Theory") 
     col1, col2 = st.columns([8, 2])
     t_cat = col1.selectbox("Category", list(CATEGORY_INFO.keys()))
@@ -726,5 +680,5 @@ elif "Theory" in menu:
     else: st.markdown(current_content, unsafe_allow_html=True)
 
 # 6. CREDITS
-elif "Credits" in menu:
+elif menu == "ℹ️ Credits":
     st.header("ℹ️ Credits"); st.write("Created by: Oh Seung-yeol")
