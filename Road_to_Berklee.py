@@ -8,11 +8,11 @@ from datetime import timedelta
 import hashlib
 import gspread
 
-# Cookie Manager Exception Handling
+# Cookie Manager Check
 try:
     import extra_streamlit_components as stx
 except ImportError:
-    st.error("⚠️ 'extra-streamlit-components' is missing. Please update requirements.txt")
+    st.error("⚠️ Please install 'extra-streamlit-components' in requirements.txt")
     st.stop()
 
 # ==========================================
@@ -22,7 +22,6 @@ NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 NATURAL_INTERVAL_DATA = {'P1': ['-2', '+7', 'P8', '+14'], 'm2': ['+1', 'm9', '+8'], 'M2': ['-3', 'M9', '-10'], 'm3': ['+2', 'm10', '+9'], 'M3': ['-4', 'M10', '-11'], 'P4': ['+3', 'P11', '+10'], 'Tritone': ['+11', '-12'], 'P5': ['-6', 'P12', '-13'], 'm6': ['+5', 'm13', '+12'], 'M6': ['-7', 'M13', '-14'], 'm7': ['+6', 'm14', '+13'], 'M7': ['-8', 'M14']}
 DISTANCE_TO_DEGREE = {1:['I'],2:['#I','bII'],3:['II'],4:['#II','bIII'],5:['III'],6:['IV'],7:['#IV','bV'],8:['V'],9:['#V','bVI'],10:['VI'],11:['#VI','bVII'],12:['VII']}
 DEGREE_MAP = {'I':0,'bII':1,'#I':1,'II':2,'bIII':3,'#II':3,'III':4,'IV':5,'#III':5,'bV':6,'#IV':6,'V':7,'bVI':8,'#V':8,'VI':9,'bVII':10,'#VI':10,'VII':11}
-R_CALC_MAP = {'I':0,'P1':0,'V':1,'P5':1,'II':2,'M2':2,'9':2,'VI':3,'M6':3,'13':3,'III':4,'M3':4,'VII':5,'M7':5,'#IV':6,'bV':6,'#11':6,'bII':7,'#I':7,'b9':7,'bVI':8,'#V':8,'b13':8,'bIII':9,'#II':9,'m3':9,'#9':9,'bVII':10,'m7':10,'IV':11,'P4':11,'11':11}
 ENHARMONIC_GROUPS = {0:['C','B#'],1:['Db','C#'],2:['D'],3:['Eb','D#'],4:['E','Fb'],5:['F','E#'],6:['Gb','F#'],7:['G'],8:['Ab','G#'],9:['A'],10:['Bb','A#'],11:['B','Cb']}
 SOLFEGE = {'I':'Do','II':'Re','III':'Mi','IV':'Fa','V':'Sol','VI':'La','VII':'Ti','bII':'Ra','bIII':'Me','bV':'Se','bVI':'Le','bVII':'Te','#I':'Di','#II':'Ri','#IV':'Fi','#V':'Si','#VI':'Li'}
 KEY_SIGS_MAJOR = {'C':'','G':'#','D':'##','A':'###','E':'####','B':'#####','F#':'######','F':'b','Bb':'bb','Eb':'bbb','Ab':'bbbb','Db':'bbbbb','Gb':'bbbbbb'}
@@ -50,72 +49,54 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
-# --- FULL THEORY DATA (100% FILLED) ---
+# --- UPDATED THEORY DATA (Natural Form & Semitones Fixed) ---
 THEORY_DATA = {
     'Enharmonics': {
         'Degrees': "### Enharmonic Degrees\n\nNotes that share the same pitch but have different names.\n\n| Sharp | Flat | Relation |\n| :--- | :--- | :--- |\n| #I | bII | Root # ↔ Super b |\n| #II | bIII | Super # ↔ Mediant b |\n| #IV | bV | Tritone |",
         'Number': "### Enharmonic Interval Numbers\n\nIdentifying compound intervals and rare interval names.\n\n| Semitones | Simple | Compound | Rare |\n| :--- | :--- | :--- | :--- |\n| 2 | 2 (M2) | 9 | bb3 |\n| 5 | 4 (P4) | 11 | #3 |",
-        'Natural Form': "### Natural Form\n\nConverting shortcut notation (offsets) back to natural interval names.\n\n| Code | Meaning | Natural Form |\n| :--- | :--- | :--- |\n| **+7** | Up 7 semitones | **P5** |\n| **-2** | Down 2 semitones | **b7** (from Octave) |\n| **+1, +8** | Up 1 (m2) | **m2** |\n| **+11, -12** | Tritone split | **Tritone** |\n| **+14** | Octave + Whole step | **M9** |"
+        'Natural Form': "### Natural Form\n\nIdentifying the fundamental interval quality from altered or compound notations. Just like identifying the 'Root' of a complex chord.\n\n| Code | Meaning | **Natural Form** |\n| :--- | :--- | :--- |\n| **+7** | Octave - 1 | **P8** (Target) |\n| **-2** | Octave - 2 | **b7** |\n| **+1** | Root + 1 | **m2** |\n| **+8** | Octave + 1 | **m9** (same as m2) |\n| **+14** | Octave + 2 | **M9** (same as M2) |\n\n**Tip:** Convert everything to the simple interval (1-7) to find the answer."
     },
     'Warming up': {
-        'Counting semitones': "### Semitones Map\n\n* **0:** P1, **1:** b2, **2:** M2, **3:** b3, **4:** M3\n* **5:** P4, **6:** Tritone, **7:** P5, **8:** b6\n* **9:** M6, **10:** b7, **11:** M7, **12:** P8",
+        'Counting semitones': "### Semitones Map (Counting from 1)\n\nWe count the **Root as 1** (the starting point).\n\n| Count | Interval | Degree |\n| :--- | :--- | :--- |\n| **1** | Perfect Unison | **P1** |\n| **2** | Minor 2nd | **b2** |\n| **3** | Major 2nd | **M2** |\n| **4** | Minor 3rd | **b3** |\n| **5** | Major 3rd | **M3** |\n| **6** | Perfect 4th | **P4** |\n| **7** | Tritone | **b5/#4** |\n| **8** | Perfect 5th | **P5** |\n| **9** | Minor 6th | **b6** |\n| **10** | Major 6th | **M6** |\n| **11** | Minor 7th | **b7** |\n| **12** | Major 7th | **M7** |\n| **13** | Octave | **P8** |",
         'Finding degrees': "### Finding Degrees\n\nFinding the specific degree within a given major key.\n* Example: What is the IV of C? -> **F**",
         'Chord tones': "### Chord Formulas\n\n* **Maj7:** 1-3-5-7\n* **7:** 1-3-5-b7\n* **m7:** 1-b3-5-b7\n* **m7b5:** 1-b3-b5-b7\n* **dim7:** 1-b3-b5-bb7",
         'Key signatures': "### Key Signatures\n\n**Sharps:** F-C-G-D-A-E-B\n**Flats:** B-E-A-D-G-C-F",
         'Solfege': "### Chromatic Solfege\n\n* Di, Ri, Fi, Si, Li (Sharps)\n* Ra, Me, Se, Le, Te (Flats)"
     },
     'Intervals': {
-        'Alternative': "### Alternative Intervals (Inversions)\n\nAn interval and its inversion always add up to **9**.\n\n* **Major (M)** ↔ **Minor (m)**\n* **Augmented (+)** ↔ **Diminished (-)**\n* **Perfect (P)** ↔ **Perfect (P)**\n\n* **m2** (1 semi) ↔ **M7** (11 semi)\n* **m3** (3 semi) ↔ **M6** (9 semi)",
-        'Tracking': "### Interval Tracking\n\nCalculating the target note from a starting note and an interval.\n\n1. **Alphabet Check:** Move the letter first (e.g., C up a 3rd is E).\n2. **Quality Check:** Adjust accidentals to match the interval quality (e.g., C to E is M3, so C to Eb is m3)."
+        'Alternative': "### Alternative Intervals (Inversions)\n\n* **Major ↔ Minor**\n* **Aug ↔ Dim**\n* **Perfect ↔ Perfect**",
+        'Tracking': "### Interval Tracking\n\n1. Count letters (C to E is a 3rd).\n2. Check semitones."
     },
     'Chord Forms': {
-        'Relationships': "### Chord Relationships\n\nChanging one note transforms the chord type.\n\n* **m7 → 6:** Lower the b7 to 6.\n* **m7 → m7b5:** Lower the 5 to b5.\n* **Maj7 → 7:** Lower the 7 to b7.\n* **dim7 → 7(b9):** Lower any single note of a dim7 chord by 1 semitone to create a Root for a Dominant 7(b9).",
-        'Extract (Degree)': "### Upper Structure Extraction (from Degree)\n\nFinding chords hidden within the scale degrees of a key.\n\n* **From V7:** The 3rd, 5th, b7, and 9th form a **m7b5** chord on the VII degree.\n* **From Maj9:** The 3-5-7-9 forms a **m7** chord starting on the 3rd degree.",
-        'Extract (Pitch)': "### Upper Structure Extraction (from Pitch)\n\n* **Cmaj9 (C E G B D):** The upper part (E G B D) is **Em7**.\n* **C13 (C E G Bb D A):** Upper structure includes **Dm7** and **Bbmaj7** shapes.",
-        '9 chord': "### 9th Chords\n\nExpanding 7th chords to include the 9th tension.\n\n* **Maj9:** Maj7 + M2\n* **9:** Dom7 + M2\n* **m9:** m7 + M2",
-        'Rootless': "### Rootless Voicings\n\nPlaying chords without the root (assuming bass plays it).\n\n* **Left Hand A/B Voicings:** 3-5-7-9 or 7-9-3-5.\n* **7sus4:** Often used as a rootless voicing for a **6(9)** chord built on the Perfect 4th below."
+        'Relationships': "### Related Chords\n\n* **Cm7 -> C6:** Lower b7 to 6.\n* **Cm7 -> Cm7b5:** Lower 5 to b5.\n* **Cmaj7 -> C7:** Lower 7 to b7.\n* **Cdim7 -> C7(b9):** Lower any note by 1 semitone.",
+        'Extract (Degree)': "### Upper Structures\n\n* **Cmaj9** (3rd to 9th) = **Em7**\n* **C13** (b7 to 13) = **Bbmaj7#5**"
     },
     'Cycle of 5th': {
-        'P5 down': "### Cycle of Fifths (Down P5 / Up P4)\n\n**C - F - Bb - Eb - Ab - Db - Gb - B - E - A - D - G**\n\nThis is the direction of resolution (V -> I). Memorize this sequence backwards and forwards.",
-        'P5 up': "### Cycle of Fifths (Up P5)\n\n**C - G - D - A - E - B - F#...**\n\nThis is the order of adding Sharps (#) to the key signature.",
-        'r calc': "### 'r' Calculation (Circle Distance)\n\nCalculates the distance on the Circle of Fifths from C.\n\n* **C = 0**\n* **G = 1** (#)\n* **F = 11** (or -1, b)",
-        '2-5-1': "### 2-5-1 Progression\n\nBased on the target I chord:\n* **II:** Major 2nd up from I (Minor chord)\n* **V:** Perfect 5th up from I (Dominant chord)\n* **I:** Target (Major/Minor)"
-    },
-    'Locations': {
-        'Deg->Pitch': "### Degree to Pitch\n\nGiven a Key and a Degree, identify the Note.\n\n* **Key: Eb, Degree: V** -> Bb (Perfect 5th above Eb)",
-        'Pitch->Deg': "### Pitch to Degree\n\nGiven a Key and a Note, identify the Degree.\n\n* **Key: G, Note: F#** -> VII (Major 7th)"
+        'P5 down': "### Cycle of Fifths\n\n**C - F - Bb - Eb - Ab - Db - Gb - B - E - A - D - G**\n\nAdds one Flat (b) each step.",
+        '2-5-1': "### II-V-I\n\nFrom Target (I):\n* **II:** Whole step up.\n* **V:** Perfect 5th up."
     },
     'Tritones': {
-        'Pitch': "### Tritone (Aug4 / Dim5)\n\nThe interval of 3 whole tones (6 semitones). It divides the octave perfectly in half.\n\n* **C - F#**\n* **F - B**\n* **Bb - E**",
-        'Degree': "### Tritone Degrees\n\nIn a Major Scale, the natural tritone occurs between:\n\n* **IV** (Subdominant) and **VII** (Leading Tone).",
-        'Dom7': "### Dominant 7th & Tritones\n\nThe **3rd** and **b7** of a Dominant 7th chord form a Tritone. This interval creates the tension that resolves to the Tonic.\n\n* **G7:** B (3rd) and F (b7) are the tritone.",
-        'Dim7': "### Diminished 7th & Tritones\n\nA Dim7 chord contains **two overlapping tritones**.\n\n* **Cdim7 (C Eb Gb A):** Tritones are C-Gb and Eb-A."
+        'Pitch': "### Tritone\n\nInterval of 3 Whole Steps.\n* C - F#\n* F - B\n* Bb - E\n* Eb - A",
+        'Dom7': "### Dom7 & Tritone\n\nTritone is between 3rd and b7.\n* Inwards resolution -> **Imaj7**\n* Outwards resolution -> **Gbmaj7** (Tritone Sub)"
     },
     'Modes': {
-        'Alterations': "### Mode Characteristic Notes\n\n* **Ionian:** Natural (4 is avoid)\n* **Dorian:** Natural 6\n* **Phrygian:** b2\n* **Lydian:** #4\n* **Mixolydian:** b7\n* **Aeolian:** b6\n* **Locrian:** b2, b5",
-        'Tensions': "### Available Tensions\n\n* **Ionian:** 9, 13\n* **Dorian:** 9, 11\n* **Phrygian:** 11, b13\n* **Lydian:** 9, #11, 13\n* **Mixolydian:** 9, 13\n* **Aeolian:** 9, 11",
-        'Chords(Deg)': "### Diatonic Chords of Modes\n\nWhich chord is on the Tonic?\n* **Dorian:** Im7\n* **Mixolydian:** I7\n* **Lydian:** Imaj7",
-        'Chords(Key)': "### Modal Interchange\n\nBorrowing chords from parallel modes.\n* **bVII7:** Borrowed from Mixolydian or Natural Minor."
+        'Alterations': "### Mode Colors\n\n* **Ionian:** Natural\n* **Dorian:** Natural 6\n* **Phrygian:** b2\n* **Lydian:** #4\n* **Mixolydian:** b7\n* **Aeolian:** b6\n* **Locrian:** b2, b5",
+        'Tensions': "### Tensions\n\nAvoid b9 intervals with chord tones.\n* **Ionian:** 9, 13\n* **Dorian:** 9, 11\n* **Phrygian:** 11, b13\n* **Lydian:** 9, #11, 13\n* **Mixolydian:** 9, 13\n* **Aeolian:** 9, 11\n* **Locrian:** 11, b13"
     },
     'Minor': {
-        'Chords': "### Minor Scale Harmony\n\n* **Natural:** Im7, IIm7b5, bIIImaj7, IVm7, Vm7, bVImaj7, bVII7\n* **Harmonic:** ImM7, IIm7b5, bIII+maj7, IVm7, V7, bVImaj7, VIIdim7",
-        'Tensions': "### Minor Key Tensions\n\n* **V7 in Minor:** Usually takes **b9, b13** (from Harmonic Minor).\n* **Im6:** Dorian sound (Natural 6).",
-        'Pitch': "### Minor Key Calculation\n\nRemember to adjust for the key signature (b3, b6, b7 for Natural Minor)."
+        'Chords': "### Minor Harmony\n\n* **Natural:** Im7, IIm7b5, bIIImaj7...\n* **Harmonic:** V7(b9,b13), VIIdim7\n* **Melodic:** ImM7, IV7, V7",
+        'Tensions': "### Minor Tensions\n\n**V7** in minor keys uses **b9, b13**."
     },
     'Mastery': {
-        'Functions': "### Harmonic Functions\n\n* **Tonic:** Stable (Imaj7, IIIm7, VIm7)\n* **Sub-Dominant:** Moving (IVmaj7, IIm7)\n* **Dominant:** Tension (V7, VIIdim7)\n* **SDm:** Minor Plagal (IVm, bVI, bII)",
-        'Degrees': "### Scale Degrees\n\nRapid identification of scale degrees in all 12 keys.",
-        'Pitches': "### Scale Pitches\n\nListing all notes in a specific scale/mode.",
-        'Avail Scales': "### Chord Scale Matching\n\n* **Maj7:** Ionian, Lydian\n* **m7:** Dorian, Phrygian, Aeolian\n* **7:** Mixolydian, Lydian b7, Altered, HMP5",
-        'Pivot': "### Pivot Chords\n\nChords common to two keys, used for modulation.\n* **Cmaj7** is I in C, and IV in G.",
-        'Similarities': "### Modal Similarities\n\nComparing modes with only 1 note difference.\n* **Ionian vs Lydian:** Only #4 differs.\n* **Mixolydian vs Dorian:** Only 3rd differs."
+        'Functions': "### Functions\n\n* **Tonic:** Imaj7, IIIm7, VIm7\n* **Sub-Dom:** IVmaj7, IIm7\n* **Dominant:** V7, VIIdim7",
+        'Avail Scales': "### Chord Scales\n\n* **Imaj7:** Ionian, Lydian\n* **Im7:** Dorian, Aeolian\n* **V7:** Mixolydian, Altered\n* **m7b5:** Locrian"
     }
 }
 
 DEFAULT_THEORY = "### Practice Makes Perfect!\n\nNo specific theory content is available for this section yet.\nIf you are **Oh Seung-yeol**, you can edit this text."
 
 # ==========================================
-# 2. STAT MANAGER (DB & Logic)
+# 2. STAT MANAGER
 # ==========================================
 class StatManager:
     def __init__(self, key_file="service_account.json", sheet_name="Berklee_DB"):
@@ -128,197 +109,100 @@ class StatManager:
             elif os.path.exists(key_file):
                 self.gc = gspread.service_account(filename=key_file)
             else: self.gc = None
-
             if self.gc:
                 self.sh = self.gc.open(sheet_name)
                 self.connected = True
         except: self.connected = False
-
         if self.connected:
             try: self.ws_users = self.sh.worksheet("Users")
-            except: 
-                self.ws_users = self.sh.add_worksheet(title="Users", rows="100", cols="3")
-                self.ws_users.append_row(["username", "password_hash", "created_at"])
+            except: self.ws_users = self.sh.add_worksheet(title="Users", rows="100", cols="3")
             try: self.ws_history = self.sh.worksheet("History")
-            except: 
-                self.ws_history = self.sh.add_worksheet(title="History", rows="1000", cols="10")
-                self.ws_history.append_row(["username", "timestamp", "year", "month", "day", "category", "subcategory", "is_correct", "is_solved"])
+            except: self.ws_history = self.sh.add_worksheet(title="History", rows="1000", cols="10")
             try: self.ws_leaderboard = self.sh.worksheet("Leaderboard")
-            except: 
-                self.ws_leaderboard = self.sh.add_worksheet(title="Leaderboard", rows="1000", cols="10")
-                self.ws_leaderboard.append_row(["username", "category", "subcategory", "mode", "date", "score", "total", "time", "solved", "rate"])
+            except: self.ws_leaderboard = self.sh.add_worksheet(title="Leaderboard", rows="1000", cols="10")
             try: self.ws_theory = self.sh.worksheet("Theory")
-            except:
-                self.ws_theory = self.sh.add_worksheet(title="Theory", rows="200", cols="3")
-                self.ws_theory.append_row(["category", "subcategory", "content"])
+            except: self.ws_theory = self.sh.add_worksheet(title="Theory", rows="200", cols="3")
 
-    def hash_password(self, password):
-        return hashlib.sha256(password.encode()).hexdigest()
-
+    def hash_password(self, password): return hashlib.sha256(password.encode()).hexdigest()
     def create_user(self, username, password):
         if not self.connected: return False, "Database not connected."
         users = self.ws_users.col_values(1)
         if username in users: return False, "Username already exists."
-        pwd_hash = self.hash_password(password)
-        now_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        self.ws_users.append_row([username, pwd_hash, now_str])
-        return True, "User created successfully! Please login."
-
+        self.ws_users.append_row([username, self.hash_password(password), datetime.datetime.now().strftime("%Y-%m-%d")])
+        return True, "User created successfully!"
     def login_user(self, username, password):
         if not self.connected: return False
         try:
             cell = self.ws_users.find(username)
-            if not cell: return False
-            stored_hash = self.ws_users.cell(cell.row, 2).value
-            if stored_hash == self.hash_password(password):
-                self.current_user = username
-                self.load_user_data()
-                return True
+            if cell and self.ws_users.cell(cell.row, 2).value == self.hash_password(password):
+                self.current_user = username; self.load_user_data(); return True
             return False
         except: return False
-
     def auto_login(self, username):
         if not self.connected: return False
         try:
-            users = self.ws_users.col_values(1)
-            if username in users:
-                self.current_user = username
-                self.load_user_data()
-                return True
+            if username in self.ws_users.col_values(1):
+                self.current_user = username; self.load_user_data(); return True
             return False
         except: return False
-
     def load_user_data(self):
-        try:
-            all_hist = self.ws_history.get_all_records()
-            self.data = [r for r in all_hist if str(r['username']) == self.current_user]
+        try: self.data = [r for r in self.ws_history.get_all_records() if str(r['username']) == self.current_user]
         except: self.data = []
-        try:
-            self.leaderboard_raw = self.ws_leaderboard.get_all_records()
-            self.leaderboard = {}
-            for r in self.leaderboard_raw:
-                cat, sub, mode = r['category'], r['subcategory'], r['mode']
-                if cat not in self.leaderboard: self.leaderboard[cat] = {}
-                if sub not in self.leaderboard[cat]: self.leaderboard[cat][sub] = {}
-                if mode not in self.leaderboard[cat][sub]: self.leaderboard[cat][sub][mode] = []
-                item = r.copy()
-                del item['category']; del item['subcategory']; del item['mode']
-                self.leaderboard[cat][sub][mode].append(item)
-            for c in self.leaderboard:
-                for s in self.leaderboard[c]:
-                    for m in self.leaderboard[c][s]:
-                        lst = self.leaderboard[c][s][m]
-                        if m == 'test': lst.sort(key=lambda x: (-x['score'], x['time']))
-                        elif m == 'speed': lst.sort(key=lambda x: (-x['solved'], -x['rate']))
-                        self.leaderboard[c][s][m] = lst[:5]
-        except: self.leaderboard = {}
-
+        try: self.leaderboard_raw = self.ws_leaderboard.get_all_records()
+        except: self.leaderboard_raw = []
     def get_theory(self, category, subcategory):
-        if not self.connected: 
-            return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
+        if not self.connected: return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
         try:
-            records = self.ws_theory.get_all_records()
-            for r in records:
-                if r['category'] == category and r['subcategory'] == subcategory:
-                    if str(r['content']).strip(): return r['content']
+            for r in self.ws_theory.get_all_records():
+                if r['category'] == category and r['subcategory'] == subcategory and str(r['content']).strip(): return r['content']
             return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
         except: return DEFAULT_THEORY
-
     def save_theory(self, category, subcategory, content):
         if not self.connected: return False
         try:
             records = self.ws_theory.get_all_records()
-            row_idx = None
-            for i, r in enumerate(records):
-                if r['category'] == category and r['subcategory'] == subcategory:
-                    row_idx = i + 2
-                    break
+            row_idx = next((i+2 for i, r in enumerate(records) if r['category'] == category and r['subcategory'] == subcategory), None)
             if row_idx: self.ws_theory.update_cell(row_idx, 3, content)
             else: self.ws_theory.append_row([category, subcategory, content])
             return True
         except: return False
-
     def record(self, category, subcategory, is_correct, is_retry=False):
         if not self.current_user or not self.connected: return
         now = datetime.datetime.now()
-        record = {
-            "username": self.current_user, "timestamp": now.timestamp(), "year": now.year, "month": now.month, "day": now.day,
-            "category": category, "subcategory": subcategory, "is_correct": 1 if (is_correct and not is_retry) else 0, "is_solved": 1 if (is_correct or is_retry) else 0
-        }
-        self.data.append(record)
-        try:
-            row = [self.current_user, record['timestamp'], record['year'], record['month'], record['day'], 
-                   record['category'], record['subcategory'], record['is_correct'], record['is_solved']]
-            self.ws_history.append_row(row)
+        row = [self.current_user, now.timestamp(), now.year, now.month, now.day, category, subcategory, 1 if (is_correct and not is_retry) else 0, 1 if (is_correct or is_retry) else 0]
+        try: self.ws_history.append_row(row)
         except: pass
-
     def update_leaderboard(self, mode, category, subcategory, result_data):
         if not self.current_user or not self.connected: return
-        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        row_data = [self.current_user, category, subcategory, mode, now_str]
-        if mode == 'test': row_data.extend([result_data['score'], result_data['total'], result_data['time'], 0, 0])
-        elif mode == 'speed': 
-            rate = (result_data['correct'] / result_data['total_try'] * 100) if result_data['total_try'] > 0 else 0
-            row_data.extend([0, 0, 0, result_data['correct'], rate])
-        try:
-            self.ws_leaderboard.append_row(row_data)
-            self.load_user_data()
+        row = [self.current_user, category, subcategory, mode, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")]
+        if mode == 'test': row.extend([result_data['score'], result_data['total'], result_data['time'], 0, 0])
+        elif mode == 'speed': row.extend([0, 0, 0, result_data['correct'], (result_data['correct']/result_data['total_try']*100) if result_data['total_try']>0 else 0])
+        try: self.ws_leaderboard.append_row(row)
         except: pass
-
-    def calculate_stats(self, filtered_data):
-        if not filtered_data: return 0, 0.0
-        correct = sum(1 for r in filtered_data if r.get('is_correct', 0) == 1)
-        solved = sum(1 for r in filtered_data if r.get('is_solved', 0) == 1)
-        total = len(filtered_data)
-        rate = (correct / total * 100) if total > 0 else 0.0
+    def calculate_stats(self, data):
+        if not data: return 0, 0.0
+        solved = sum(1 for r in data if r.get('is_solved', 0) == 1)
+        rate = (sum(1 for r in data if r.get('is_correct', 0) == 1) / len(data) * 100) if data else 0.0
         return solved, rate
-
-    def get_breakdown(self, filtered_data):
-        breakdown = {}
-        for r in filtered_data:
-            cat = r['category']; sub = r['subcategory']
-            if cat not in breakdown: breakdown[cat] = {'total': 0, 'correct': 0, 'subs': {}}
-            if sub not in breakdown[cat]['subs']: breakdown[cat]['subs'][sub] = {'total': 0, 'correct': 0}
-            breakdown[cat]['total'] += 1
-            breakdown[cat]['subs'][sub]['total'] += 1
-            if r.get('is_correct', 0) == 1:
-                breakdown[cat]['correct'] += 1
-                breakdown[cat]['subs'][sub]['correct'] += 1
-        return breakdown
-    
-    def get_trend_data(self, category, subcategory, period_type):
-        target_data = []
-        for r in self.data:
-            if category != "All":
-                if r['category'] != category: continue
-                if subcategory and r['subcategory'] != subcategory: continue
-            target_data.append(r)
-        if not target_data: return []
+    def get_breakdown(self, data):
+        bd = {}
+        for r in data:
+            c, s = r['category'], r['subcategory']
+            if c not in bd: bd[c] = {'total': 0, 'correct': 0, 'subs': {}}
+            if s not in bd[c]['subs']: bd[c]['subs'][s] = {'total': 0, 'correct': 0}
+            bd[c]['total'] += 1; bd[c]['subs'][s]['total'] += 1
+            if r.get('is_correct', 0) == 1: bd[c]['correct'] += 1; bd[c]['subs'][s]['correct'] += 1
+        return bd
+    def get_trend_data(self, category, subcategory, period):
+        target = [r for r in self.data if (category == "All" or r['category'] == category) and (not subcategory or r['subcategory'] == subcategory)]
+        if not target: return []
         grouped = {}
-        for r in target_data:
-            dt = datetime.datetime.fromtimestamp(r['timestamp'])
-            key = ""
-            if period_type == 'yearly': key = str(r['year'])
-            elif period_type == 'monthly': key = f"{r['year']}-{r['month']:02d}"
-            elif period_type == 'weekly':
-                wn, _, _ = self.get_custom_week(dt)
-                key = f"{r['year']}-W{wn:02d}"
-            if key not in grouped: grouped[key] = {'correct': 0, 'total': 0}
-            grouped[key]['total'] += 1
-            if r.get('is_correct', 0) == 1: grouped[key]['correct'] += 1
-        result = []
-        for k in sorted(grouped.keys()):
-            rate = (grouped[k]['correct'] / grouped[k]['total'] * 100)
-            result.append((k, rate))
-        return result
-
-    def get_custom_week(self, date_obj):
-        year = date_obj.year
-        jan1 = datetime.date(year, 1, 1)
-        first_sunday = jan1 + timedelta(days=(6 - jan1.weekday()))
-        if date_obj.date() <= first_sunday: return 1, jan1, first_sunday
-        days_after = (date_obj.date() - first_sunday).days
-        return 2 + (days_after - 1) // 7, None, None
+        for r in target:
+            key = f"{r['year']}-W{datetime.datetime.fromtimestamp(r['timestamp']).isocalendar()[1]:02d}"
+            if key not in grouped: grouped[key] = {'c': 0, 't': 0}
+            grouped[key]['t'] += 1
+            if r.get('is_correct', 0) == 1: grouped[key]['c'] += 1
+        return sorted([(k, (v['c']/v['t']*100)) for k, v in grouped.items()])
 
 if 'stat_mgr' not in st.session_state: st.session_state.stat_mgr = StatManager()
 
@@ -326,13 +210,13 @@ if 'stat_mgr' not in st.session_state: st.session_state.stat_mgr = StatManager()
 # 3. UTILS & GENERATOR & KEYPAD
 # ==========================================
 def get_enharmonic_names(idx): return ENHARMONIC_GROUPS.get(idx % 12, [])
-def get_pitch_index(pitch):
-    pitch = pitch.strip().capitalize()
-    enharmonics = {'C#':'Db','D#':'Eb','F#':'Gb','G#':'Ab','A#':'Bb','Cb':'B','B#':'C','E#':'F','Fb':'E'}
-    if pitch in enharmonics: pitch = enharmonics[pitch]
-    return NOTES.index(pitch) if pitch in NOTES else -1
+def get_pitch_index(p):
+    p = p.strip().capitalize()
+    enh = {'C#':'Db','D#':'Eb','F#':'Gb','G#':'Ab','A#':'Bb','Cb':'B','B#':'C','E#':'F','Fb':'E'}
+    p = enh.get(p, p)
+    return NOTES.index(p) if p in NOTES else -1
 def get_pitch_from_index(idx): return NOTES[idx % 12]
-def get_valid_answers(idx, suffix=""): return [f"{r}{suffix}" for r in get_enharmonic_names(idx)]
+def get_valid_answers(idx, suf=""): return [f"{r}{suf}" for r in get_enharmonic_names(idx)]
 def get_slash_answers(ridx, suf, bidx): return [f"{r}{suf}/{b}" for r in get_enharmonic_names(ridx) for b in get_enharmonic_names(bidx)]
 def normalize_input(text):
     text = text.replace('♭', 'b').replace('♯', '#')
@@ -360,43 +244,49 @@ def get_keypad_keys(cat, sub):
         rows.append(['dim7','6','m6','sus4','aug'])
     return rows
 
+# [STYLE FIX: Targeted CSS for Keypad Buttons Only]
 def render_keypad(cat, sub):
     key_rows = get_keypad_keys(cat, sub)
+    
     st.markdown("""
         <style>
-        .stButton > button {
+        /* Keypad Buttons specific styling */
+        div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] .stButton > button {
             width: 100% !important;
             height: 70px !important;
-            min-height: 70px !important;
             font-size: 24px !important;
             font-weight: bold !important;
-            margin: 2px 0px !important;
-            padding: 0px !important;
+            border-radius: 10px !important;
+            margin: 0px !important;
+        }
+        /* Sidebar Button Reset */
+        section[data-testid="stSidebar"] .stButton > button {
+            height: auto !important;
+            width: auto !important;
+            font-size: inherit !important;
         }
         div[data-testid="column"] {
-            padding: 0px 2px !important;
+            padding: 2px !important;
         }
         </style>
     """, unsafe_allow_html=True)
-    for row_keys in key_rows:
-        cols = st.columns(len(row_keys)) 
-        for i, key in enumerate(row_keys):
+    
+    for row in key_rows:
+        cols = st.columns(len(row))
+        for i, key in enumerate(row):
             if cols[i].button(key, key=f"k_{key}"):
                 st.session_state.user_input_buffer += key
                 st.rerun()
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 1, 2])
     with c1:
-        if st.button("⬅️ Del"):
-            st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1]; st.rerun()
+        if st.button("⬅️ Del"): st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1]; st.rerun()
     with c2:
-        if st.button("❌ Clear"):
-            st.session_state.user_input_buffer = ""; st.rerun()
+        if st.button("❌ Clear"): st.session_state.user_input_buffer = ""; st.rerun()
     with c3:
-        if st.button("✅ Submit", type="primary", use_container_width=True): return True
+        if st.button("✅ Submit", type="primary"): return True
     return False
 
-# --- Question Generation (FULL LOGIC) ---
 def generate_question(cat, sub):
     try:
         if cat == 'Enharmonics':
