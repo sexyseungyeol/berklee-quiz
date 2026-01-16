@@ -26,7 +26,7 @@ DEGREE_MAP = {'I':0,'bII':1,'#I':1,'II':2,'bIII':3,'#II':3,'III':4,'IV':5,'#III'
 SOLFEGE = {'I':'Do','II':'Re','III':'Mi','IV':'Fa','V':'Sol','VI':'La','VII':'Ti','bII':'Ra','bIII':'Me','bV':'Se','bVI':'Le','bVII':'Te','#I':'Di','#II':'Ri','#IV':'Fi','#V':'Si','#VI':'Li'}
 ENHARMONIC_GROUPS = {0:['C','B#'],1:['Db','C#'],2:['D'],3:['Eb','D#'],4:['E','Fb'],5:['F','E#'],6:['Gb','F#'],7:['G'],8:['Ab','G#'],9:['A'],10:['Bb','A#'],11:['B','Cb']}
 CHORD_FORMULAS = {'maj7':[0,4,7,11],'mM7':[0,3,7,11],'6':[0,4,7,9],'m6':[0,3,7,9],'7':[0,4,7,10],'m7':[0,3,7,10],'m7b5':[0,3,6,10],'dim7':[0,3,6,9],'aug':[0,4,8],'aug7':[0,4,8,10],'7(b5)':[0,4,6,10],'+M7':[0,4,8,11],'7sus4':[0,5,7,10]}
-SCALES_DATA = {'Ionian':['I','II','III','IV','V','VI','VII'],'Dorian':['I','II','bIII','IV','V','VI','bVII'],'Phrygian':['I','bII','bIII','IV','V','bVI','bVII'],'Lydian':['I','II','III','#IV','V','VI','VII'],'Mixolydian':['I','II','III','IV','V','VI','bVII'],'Aeolian':['I','II','bIII','IV','V','bVI','bVII'],'Locrian':['I','bII','bIII','IV','bV','bVI','bVII'],'Natural minor':['I','II','bIII','IV','V','bVI','bVII'],'Harmonic minor':['I','II','bIII','IV','V','bVI','VII'],'Melodic minor':['I','II','bIII','IV','V','VI','VII']}
+SCALES_DATA = {'Ionian':['I','II','III','IV','V','VI','VII'],'Dorian':['I','II','bIII','IV','V','VI','bVII'],'Phrygian':['I','bII','bIII','IV','V','bVI','bVII'],'Lydian':['I','II','III','#IV','V','VI','VII'],'Mixolydian':['I','II','III','IV','V','VI','bVII'],'Aeolian':['I','II','bIII','IV','V','bVI','bVII'],'Locrian':['I','bII','bIII','IV','bV','bVI','bVII']}
 CHORD_FUNCTIONS = {'T':['I','I6','Imaj7','IIIm7','VIm7','I7','IIIm7b5','III7','#IVm7b5'],'Tm':['Im','Im6','Imb6','Im7','ImM7','bIIImaj7','bIII+M7','VIm7b5','bVImaj7'],'SD':['IV','IV6','IVmaj7','IIm7','IV7','bVII','bVIImaj7','VII7','#IVm7b5'],'SDm':['IVm','IVm6','IVm7','IIm7b5','bVI6','bVImaj7','bVII7','bIImaj7','bVI7','IVmM7'],'D':['V','V7','VIIm7b6','bII7','VIIdim7'],'Dm':['Vm','Vm7']}
 DUAL_FUNCTION_CHORDS = {'#IVm7b5':['T','SD'],'bVImaj7':['SDm','Tm']}
 MODE_ALTERATIONS = {'Dorian':['bIII','bVII'],'Phrygian':['bII','bIII','bVI','bVII'],'Lydian':['#IV'],'Mixolydian':['bVII'],'Aeolian':['bIII','bVI','bVII'],'Locrian':['bII','bIII','bV','bVI','bVII']}
@@ -46,7 +46,7 @@ CATEGORY_INFO = {
 }
 
 # ==========================================
-# 2. STAT MANAGER (Week Range Fixed)
+# 2. STAT MANAGER (Week labels & Types fixed)
 # ==========================================
 class StatManager:
     def __init__(self, key_file="service_account.json", sheet_name="Berklee_DB"):
@@ -63,20 +63,21 @@ class StatManager:
             self.ws_users = self.sh.worksheet("Users"); self.ws_history = self.sh.worksheet("History")
             self.ws_leaderboard = self.sh.worksheet("Leaderboard")
 
-    def hash_password(self, password): return hashlib.sha256(password.encode()).hexdigest()
     def login_user(self, username, password):
         if not self.connected: return False
         try:
             cell = self.ws_users.find(username)
-            if cell and self.ws_users.cell(cell.row, 2).value == self.hash_password(password):
+            if cell and self.ws_users.cell(cell.row, 2).value == hashlib.sha256(password.encode()).hexdigest():
                 self.current_user = username; self.load_user_data(); return True
             return False
         except: return False
+
     def auto_login(self, username):
         if not self.connected: return False
         if username in self.ws_users.col_values(1):
             self.current_user = username; self.load_user_data(); return True
         return False
+
     def load_user_data(self):
         try:
             all_h = self.ws_history.get_all_records()
@@ -99,11 +100,6 @@ class StatManager:
         try: self.ws_leaderboard.append_row(row); self.load_user_data()
         except: pass
 
-    def calculate_stats(self, data):
-        if not data: return 0, 0.0
-        correct = sum(1 for r in data if r.get('is_correct', 0) == 1)
-        return len(data), (correct / len(data) * 100)
-
     def get_trend_data(self, category, subcategory, period_type):
         target = [r for r in self.data if (category == "All" or r['category'] == category) and (not subcategory or r['subcategory'] == subcategory)]
         if not target: return []
@@ -120,64 +116,57 @@ class StatManager:
             if key not in grouped: grouped[key] = {'c': 0, 't': 0, 'range': date_range}
             grouped[key]['t'] += 1
             if r.get('is_correct', 0) == 1: grouped[key]['c'] += 1
-        return sorted([{'Period': k, 'Accuracy': (v['c']/v['t']*100), 'Range': v['range']} for k, v in grouped.items()], key=lambda x: x['Period'])
+        
+        # Convert to list for DataFrame and ensure labels are strings
+        result = []
+        for k, v in grouped.items():
+            result.append({'Period': str(k), 'Accuracy': float(v['c']/v['t']*100), 'Range': str(v['range'])})
+        return sorted(result, key=lambda x: x['Period'])
 
 if 'stat_mgr' not in st.session_state: st.session_state.stat_mgr = StatManager()
 
 # ==========================================
-# 3. SMART KEYPAD (10 Priority Levels)
+# 3. SMART KEYPAD (Priority 1-10 Fix)
 # ==========================================
 def get_pitch_index(p):
     p = p.strip().capitalize().replace('♯','#').replace('♭','b')
     enh = {'C#':'Db','D#':'Eb','F#':'Gb','G#':'Ab','A#':'Bb','Cb':'B','B#':'C','E#':'F','Fb':'E'}
     p = enh.get(p, p); return NOTES.index(p) if p in NOTES else -1
-def get_pitch_from_index(idx): return NOTES[idx % 12]
-def get_enharmonic_names(idx): return ENHARMONIC_GROUPS.get(idx % 12, [])
-def normalize_input(text): return set([p.strip().lower() for p in text.replace('♭','b').replace('♯','#').replace('/',',').split(',') if p.strip()])
 
-# [CALLBACKS]
 def add_input(k): st.session_state.user_input_buffer += k
 def del_input(): st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1]
 def clear_input(): st.session_state.user_input_buffer = ""
 
 def get_smart_keypad(cat, sub):
-    """지능형 위계 레이아웃: 1.임시표 > 2.쉼표 > 3.성질 > 4.음 > 5.도수 > 6.숫자 > 7.모드 > 8.스케일 > 9.코드 > 10.슬래시"""
+    """지능형 10단계 위계 레이아웃: +, - 복구 완료"""
     layout = []
-    
-    # 1. 임시표 (♭, ♯)
-    if not (cat == 'Warming up' and sub == 'Counting semitones'): layout.append(['♭', '♯'])
-    
-    # 2. 쉼표 (,)
-    if any(s in sub for s in ['Chord tones', 'Alterations', 'Tensions', 'Dom7', 'Dim7', 'Pitches', 'Pivot', 'Number']): layout.append([','])
-    
-    # 3. 음정 성질 (+, M, P, m, -) - [복구 완료]
-    if cat == 'Intervals' or any(s in sub for s in ['Natural Form', 'Number', 'Alternative', 'Tracking']): layout.append(['+', 'M', 'P', 'm', '-'])
-    
-    # 4. 음 이름 (C~B)
-    if any(s in sub for s in ['Finding', 'tones', 'Pitch', 'Tracking', 'Key', 'Pitches', 'Pivot', 'Similarities']):
+    # 1. 임시표
+    layout.append(['♭', '♯'])
+    # 2. 쉼표
+    if any(s in sub for s in ['Chord tones', 'Alterations', 'Tensions', 'Dom7', 'Dim7', 'Pitches', 'Pivot', 'Number']):
+        layout.append([','])
+    # 3. 성질 (+, M, P, m, -) - [강력한 조건 부여]
+    if any(k in cat for k in ['Intervals', 'Enharmonics', 'Minor']) or any(s in sub for s in ['Natural', 'Number', 'Alternative', 'Tracking']):
+        layout.append(['+', 'M', 'P', 'm', '-'])
+    # 4. 음 이름
+    if any(s in sub for s in ['Finding', 'tones', 'Pitch', 'Tracking', 'Key', 'Pitches', 'Pivot']):
         layout.append(['C', 'D', 'E', 'F']); layout.append(['G', 'A', 'B'])
-    
-    # 5. 도수 (I ~ VII) - 분할 배치
+    # 5. 도수
     if any(s in sub for s in ['Degrees', 'Finding', 'Pitch->Deg', 'Alterations', 'Chords', 'Functions']):
         layout.append(['I', 'II', 'III']); layout.append(['IV', 'V', 'VI', 'VII'])
-        
-    # 6. 숫자 (1 ~ 0)
+    # 6. 숫자
     if any(s in sub for s in ['Counting', 'Number', 'Natural', 'r calc', 'tones']):
         layout.append(['1', '2', '3', '4', '5']); layout.append(['6', '7', '8', '9', '0'])
-        
-    # 7. 모드 (Ionian ~ Locrian)
+    # 7. 모드
     if cat == 'Modes' or sub in ['Avail Scales', 'Similarities']:
         layout.append(['Ionian', 'Dorian', 'Phrygian', 'Lydian']); layout.append(['Mixolydian', 'Aeolian', 'Locrian'])
-        
-    # 8. 스케일 (Natural minor 등)
+    # 8. 스케일
     if cat == 'Minor' or sub in ['Similarities', 'Degrees', 'Pitches']:
         layout.append(['Natural minor', 'Harmonic minor', 'Melodic minor'])
-        
-    # 9. 코드 타입 (Priority 9)
+    # 9. 코드 타입
     if any(c in cat for c in ['Chord Forms', 'Minor', 'Tritones', 'Mastery']) or 'Chords' in sub:
         layout.append(['maj7', 'm7', '7', 'm7b5']); layout.append(['dim7', '6', 'm6', 'sus4', 'aug'])
-        
-    # 10. 슬래시 (/) - 최하위
+    # 10. 슬래시
     if sub in ['9 chord', 'Rootless', 'Pivot']: layout.append(['/'])
 
     if sub == 'Solfege': return [['Do','Re','Mi','Fa'], ['Sol','La','Ti'], ['Di','Ri','Fi','Si','Li'], ['Ra','Me','Se','Le','Te']]
@@ -185,11 +174,12 @@ def get_smart_keypad(cat, sub):
 
 def render_keypad(cat, sub):
     key_rows = get_smart_keypad(cat, sub)
-    st.markdown("""<style>div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] .stButton > button { width: 100% !important; height: 70px !important; min-height: 70px !important; font-size: 18px !important; font-weight: bold !important; border-radius: 10px !important; margin-bottom: 6px !important; padding: 0px !important; }</style>""", unsafe_allow_html=True)
+    st.markdown("""<style>div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] .stButton > button { width: 100% !important; height: 70px !important; font-size: 18px !important; font-weight: bold !important; border-radius: 10px !important; margin-bottom: 6px !important; }</style>""", unsafe_allow_html=True)
     for i, row in enumerate(key_rows):
         cols = st.columns(len(row))
-        for j, key in enumerate(row): cols[j].button(key, key=f"k_{i}_{j}_{key}", on_click=add_input, args=(key,), use_container_width=True)
-        if i == 0: st.write("") # 임시표 뒤 여백
+        for j, key in enumerate(row):
+            cols[j].button(key, key=f"k_{i}_{j}_{key}", on_click=add_input, args=(key,), use_container_width=True)
+        if i == 0: st.write("") 
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 1, 2])
     c1.button("⬅️ Del", on_click=del_input, use_container_width=True)
@@ -198,7 +188,7 @@ def render_keypad(cat, sub):
     return False
 
 # ==========================================
-# 4. QUIZ LOGIC (Restored Speed Run)
+# 4. QUIZ GENERATOR (Logic Restoration)
 # ==========================================
 def generate_question(cat, sub):
     try:
@@ -218,19 +208,14 @@ def generate_question(cat, sub):
             if sub == 'Finding degrees':
                 dn, dv = random.choice(list(DEGREE_MAP.items())); p = random.choice(NOTES)
                 return f"What is {dn} of {p} Key?", ENHARMONIC_GROUPS[(get_pitch_index(p)+dv)%12], 'single'
-            if sub == 'Chord tones':
-                p, ct = random.choice(NOTES), random.choice(list(CHORD_FORMULAS.keys())); idx = get_pitch_index(p)
-                ans = [get_pitch_from_index((idx+interval)%12) for interval in CHORD_FORMULAS[ct]]
-                return f"Chord tones of {p}{ct}? (Use Comma)", ans, 'all_indices'
         elif cat == 'Intervals':
             data = [('m2',1,'M7'),('M2',2,'m7'),('m3',3,'M6'),('M3',4,'m6'),('P4',5,'P5'),('P5',7,'P4'),('m6',8,'M3'),('M6',9,'m3'),('m7',10,'M2'),('M7',11,'m2')]; q_int, semis, inv_int = random.choice(data)
-            if sub == 'Alternative': idx = (get_pitch_index(root)+semis)%12; return f"Alternative to {root}{q_int}?", [f"{r}{inv_int}" for r in get_enharmonic_names(idx)], 'single'
-            if sub == 'Tracking': idx = (get_pitch_index(root)+semis)%12; return f"Pitch {q_int} up from {root}?", get_enharmonic_names(idx), 'single'
-        return f"Find the root of {cat}/{sub}?", ["C"], 'single'
-    except: return "Q Error", ["C"], 'single'
+            if sub == 'Alternative': idx = (get_pitch_index(root)+semis)%12; return f"Alternative to {root}{q_int}?", [f"{r}{inv_int}" for r in ENHARMONIC_GROUPS[idx % 12]], 'single'
+        return f"Logic for {cat}/{sub} root?", ["C"], 'single'
+    except: return "Question Generation Error", ["C"], 'single'
 
 # ==========================================
-# 5. APP UI
+# 5. MAIN NAVIGATION
 # ==========================================
 st.set_page_config(page_title="Road to Berklee", page_icon="🎹")
 cookie_manager = stx.CookieManager()
@@ -260,7 +245,8 @@ if not st.session_state.logged_in_user:
 
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
-    if st.button("Logout"): st.session_state.logged_in_user = None; cookie_manager.delete("berklee_user"); st.rerun()
+    if st.button("Logout"):
+        st.session_state.logged_in_user = None; cookie_manager.delete("berklee_user"); st.rerun()
     st.markdown("---")
     menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "🏆 Leaderboard"])
 
@@ -309,34 +295,35 @@ def move_to_next():
     else: qs['current_q'] = qs['retry_pool'][qs['current_idx']] if qs['is_retry'] else generate_question(qs['cat'], qs['sub'])
     st.rerun()
 
-# --- RENDER ---
+# --- RENDERING ---
 if menu == "🏠 Home":
     col1, col2 = st.columns([1, 2])
     with col1:
         if os.path.exists("logo.png"): st.image("logo.png", width=180)
         else: st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png", width=150)
-    st.markdown("<div style='text-align: left;'><h1>Road to Berklee</h1><h3>Master Music Theory Step-by-Step</h3></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: left;'><h1>Road to Berklee</h1><h3>Master Music Theory</h3></div>", unsafe_allow_html=True)
 
 elif menu == "📝 Start Quiz":
     if st.session_state.page == 'quiz':
         if st.session_state.last_result:
             res = st.session_state.last_result; bg = "rgba(0,255,0,0.2)" if res['correct'] else "rgba(255,0,0,0.2)"
-            st.markdown(f"<style>.stApp {{ animation: flash 0.6s forwards; }} @keyframes flash {{ 0% {{ background-color: {bg}; }} 100% {{ background-color: transparent; }} }}</style>", unsafe_allow_html=True)
+            st.markdown(f"<style>.stApp {{ animation: flash 0.5s forwards; }} @keyframes flash {{ 0% {{ background-color: {bg}; }} 100% {{ background-color: transparent; }} }}</style>", unsafe_allow_html=True)
             if res['correct']: st.toast("✅ Correct!")
             elif res.get('show_ans'): st.error(f"❌ Answer: {res['ans']}")
             else: st.toast(f"❌ Try Again ({st.session_state.wrong_count}/3)")
             st.session_state.last_result = None
         qs = st.session_state.quiz_state
         if qs['mode'] == 'speed':
-            elap = time.time() - qs['start_time']
-            if elap >= qs['limit']: 
+            el = time.time() - qs['start_time']
+            if el >= qs['limit']: 
                 st.session_state.stat_mgr.update_leaderboard('speed', qs['cat'], qs['sub'], {'correct': qs['score'], 'total_try': qs['current_idx']})
                 st.session_state.page = 'result'; st.rerun()
-            st.progress(max(0.0, min(1.0, (qs['limit']-elap)/qs['limit']))); st.write(f"⏱️ {int(qs['limit']-elap)}s | Score: {qs['score']}")
+            st.progress(max(0.0, min(1.0, (qs['limit']-el)/qs['limit']))); st.write(f"⏱️ {int(qs['limit']-el)}s | Score: {qs['score']}")
         else: st.progress(qs['current_idx'] / qs['limit']); st.write(f"Q {qs['current_idx']+1} / {qs['limit']}")
         st.subheader(qs['current_q'][0]); st.text_input("Answer Input", value=st.session_state.user_input_buffer, disabled=True)
         if render_keypad(qs['cat'], qs['sub']): check_answer()
         if st.button("🏠 Quit Quiz"): st.session_state.page = 'home'; st.session_state.quiz_state['active'] = False; st.rerun()
+
     elif st.session_state.page == 'result':
         qs = st.session_state.quiz_state; st.header("Result")
         if not qs['is_retry']: st.metric("Score", f"{qs['score']}/{qs['limit']}" if qs['mode']!='speed' else f"{qs['score']} Q")
@@ -367,13 +354,12 @@ elif menu == "📊 Statistics":
                 for sub, d in bd[cat]['subs'].items(): st.write(f"- {sub}: {d['correct']/d['total']*100:.1f}%")
     with t2:
         cat = st.selectbox("Chart Cat", ["All"] + list(CATEGORY_INFO.keys()))
-        sub = st.selectbox("Chart Sub", ["All"] + CATEGORY_INFO[cat]) if cat != "All" else None
         if st.button("Show Trend"):
-            d_list = st.session_state.stat_mgr.get_trend_data(cat, None if sub=="All" else sub, "weekly")
+            d_list = st.session_state.stat_mgr.get_trend_data(cat, None, "weekly")
             if d_list:
                 df = pd.DataFrame(d_list)
                 chart = alt.Chart(df).mark_line(point=True).encode(
-                    x=alt.X('Period:N', title='Period', axis=alt.Axis(labelAngle=-45)),
+                    x=alt.X('Period:O', title='Period (Week)'),
                     y=alt.Y('Accuracy:Q', title='Accuracy (%)', scale=alt.Scale(domain=[0, 100])),
                     tooltip=[alt.Tooltip('Period:N'), alt.Tooltip('Range:N'), alt.Tooltip('Accuracy:Q', format='.1f')]
                 ).properties(width=700, height=400).interactive()
@@ -383,7 +369,8 @@ elif menu == "📊 Statistics":
 elif menu == "🏆 Leaderboard":
     st.header("🏆 Hall of Fame")
     lc = st.selectbox("L-Category", list(CATEGORY_INFO.keys())); ls = st.selectbox("L-Sub", CATEGORY_INFO[lc])
-    c1, c2 = st.columns(2); raw = st.session_state.stat_mgr.leaderboard_raw
+    raw = st.session_state.stat_mgr.leaderboard_raw
+    c1, c2 = st.columns(2)
     with c1:
         st.subheader("Test Mode")
         data = sorted([r for r in raw if r['category']==lc and r['subcategory']==ls and r['mode']=='test'], key=lambda x: (-float(x['score']), float(x['time'])))
