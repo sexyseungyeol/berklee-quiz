@@ -44,10 +44,10 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
-# --- Initial Theory Data (Pre-filled) ---
+# --- Initial Theory Data (Updated) ---
 THEORY_DATA = {
     'Enharmonics': {
-        'Degrees': "### Enharmonic Degrees (이명동음 도수)\n\n같은 음이지만 문맥에 따라 다르게 불리는 도수들입니다.\n\n* **#I = bII** (Db)\n* **#II = bIII** (Eb)\n* **bIV = III** (E)\n* **#IV = bV** (Gb, Tritone)\n* **#V = bVI** (Ab)\n* **#VI = bVII** (Bb)\n* **b1 = 7** (B)\n\n**Tip:** '플랫이 붙으면 다음 도수', '샵이 붙으면 같은 도수'라고 생각하면 쉽습니다.",
+        'Degrees': "### Enharmonic Degrees (이명동음 도수)\n\n같은 음이지만 문맥에 따라 다르게 불리는 도수들입니다.\n\n| Original | Enharmonic | Note (C Key) |\n| :--- | :--- | :--- |\n| **#I** | **bII** | C# = Db |\n| **#II** | **bIII** | D# = Eb |\n| **bIV** | **III** | Fb = E |\n| **#IV** | **bV** | F# = Gb |\n| **#V** | **bVI** | G# = Ab |\n| **#VI** | **bVII** | A# = Bb |\n| **bI** | **VII** | Cb = B |\n\n**Tip:** '플랫이 붙으면 다음 도수', '샵이 붙으면 같은 도수'라고 생각하면 쉽습니다.",
         'Number': "### Enharmonic Interval Numbers\n\n음정 숫자도 이명동음 관계가 있습니다.\n\n* **Aug 1 (#1) ↔ Min 2 (b2)**\n* **Aug 2 (#2) ↔ Min 3 (b3)**\n* **Aug 4 (#4) ↔ Dim 5 (b5)**\n* **Aug 5 (#5) ↔ Min 6 (b6)**\n* **Dim 7 (bb7) ↔ Maj 6 (6)**\n\n특히 **Diminished 7th** 코드를 다룰 때 bb7을 6(장6도)로 빨리 환산하는 것이 중요합니다.",
         'Interval': "### Natural Intervals (자연 음정)\n\n아무런 변화표가 없는 상태에서의 음정 간격입니다.\n\n* **m2 (단2도):** 1 semitone (E-F, B-C)\n* **M2 (장2도):** 2 semitones\n* **m3 (단3도):** 3 semitones\n* **M3 (장3도):** 4 semitones\n* **P4 (완전4도):** 5 semitones\n* **Tritone:** 6 semitones (The devil's interval)\n* **P5 (완전5도):** 7 semitones"
     },
@@ -196,7 +196,6 @@ class StatManager:
             for r in records:
                 if r['category'] == category and r['subcategory'] == subcategory:
                     return r['content']
-            # DB에 없으면 코드상에 있는 초기 데이터를 반환
             return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
         except: return DEFAULT_THEORY
 
@@ -562,8 +561,6 @@ if not st.session_state.logged_in_user:
 # --- MAIN APP ---
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
-    
-    # [OWNER CHECK UPDATED: 오승열]
     if st.session_state.logged_in_user == '오승열':
         st.caption("👑 Owner Mode Active")
 
@@ -573,7 +570,7 @@ with st.sidebar:
         cookie_manager.delete("berklee_user") 
         st.rerun()
     st.markdown("---")
-    menu = st.radio("Menu", ["🏠 Home", "📊 Statistics", "🏆 Leaderboard", "📚 Theory", "ℹ️ Credits"])
+    menu = st.radio("Menu", ["Home", "Statistics", "Leaderboard", "Theory", "Credits"])
 
 if 'quiz_state' not in st.session_state:
     st.session_state.quiz_state = {
@@ -656,9 +653,9 @@ def finish_quiz():
     st.rerun()
 
 # --- Pages ---
-if st.session_state.page == 'home' or "Home" in menu:
-    if "Home" in menu:
-        st.header("Select Category")
+if st.session_state.page == 'home' or menu == "Home":
+    if menu == "Home":
+        st.header("🎹 Select Category") # [EMOJI ADDED]
         cat_names = list(CATEGORY_INFO.keys())
         sel_cat = st.selectbox("Category", cat_names)
         if sel_cat:
@@ -674,8 +671,8 @@ if st.session_state.page == 'home' or "Home" in menu:
             with m3:
                 st.write("60 Seconds."); 
                 if st.button("Start Speed Run"): start_quiz(sel_cat, sel_sub, 'speed', 60)
-    elif "Statistics" in menu:
-        st.header("Statistics")
+    elif menu == "Statistics":
+        st.header("📊 Statistics") # [EMOJI ADDED]
         t1, t2 = st.tabs(["Cumulative", "Trend"])
         with t1:
             solved, rate = st.session_state.stat_mgr.calculate_stats(st.session_state.stat_mgr.data)
@@ -696,8 +693,8 @@ if st.session_state.page == 'home' or "Home" in menu:
                 d = st.session_state.stat_mgr.get_trend_data(t_cat, t_sub, "weekly") # Default weekly
                 if d: st.line_chart({x[0]: x[1] for x in d})
                 else: st.warning("No Data")
-    elif "Leaderboard" in menu:
-        st.header("🏆 Hall of Fame")
+    elif menu == "Leaderboard":
+        st.header("🏆 Hall of Fame") # [EMOJI ADDED]
         l_cat = st.selectbox("Cat", list(CATEGORY_INFO.keys()))
         l_sub = st.selectbox("Sub", CATEGORY_INFO[l_cat])
         c1, c2 = st.columns(2)
@@ -713,15 +710,13 @@ if st.session_state.page == 'home' or "Home" in menu:
             for i, r in enumerate(d): st.write(f"**{i+1}. {r.get('username','?')}**: {r['solved']} ({r['rate']:.1f}%)")
     
     # --- THEORY PAGE (CMS) ---
-    elif "Theory" in menu:
-        st.header("📚 Music Theory")
+    elif menu == "Theory":
+        st.header("📚 Music Theory") # [EMOJI ADDED]
         
-        # OWNER EDIT BUTTON LAYOUT
         col1, col2 = st.columns([8, 2])
         t_cat = col1.selectbox("Category", list(CATEGORY_INFO.keys()))
         t_sub = col1.selectbox("Subcategory", CATEGORY_INFO[t_cat])
         
-        # Only show Edit button to '오승열'
         if st.session_state.logged_in_user == '오승열':
             if not st.session_state.edit_mode:
                 if col2.button("✏️ Edit"):
@@ -729,11 +724,8 @@ if st.session_state.page == 'home' or "Home" in menu:
                     st.rerun()
 
         st.markdown("---")
-        
-        # Load Content
         current_content = st.session_state.stat_mgr.get_theory(t_cat, t_sub)
         
-        # EDIT MODE
         if st.session_state.edit_mode and st.session_state.logged_in_user == '오승열':
             st.warning("🛠️ Editing Mode")
             new_content = st.text_area("Markdown Content", value=current_content, height=400)
@@ -752,11 +744,11 @@ if st.session_state.page == 'home' or "Home" in menu:
                     st.session_state.edit_mode = False
                     st.rerun()
         else:
-            # VIEW MODE (Everyone)
-            st.markdown(current_content, unsafe_allow_html=True) # Allow HTML for image alignment
+            st.markdown(current_content, unsafe_allow_html=True)
 
-    elif "Credits" in menu:
-        st.header("Credits"); st.write("Created by: Oh Seung-yeol")
+    elif menu == "Credits":
+        st.header("ℹ️ Credits") # [EMOJI ADDED]
+        st.write("Created by: Oh Seung-yeol")
 
 if st.session_state.page == 'quiz':
     qs = st.session_state.quiz_state
