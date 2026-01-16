@@ -48,23 +48,6 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
-THEORY_DATA = {
-    'Enharmonics': {
-        'Degrees': "### Enharmonic Degrees\n\nNotes that share the same pitch but have different names.\n\n| Sharp | Flat | Relation |\n| :--- | :--- | :--- |\n| #I | bII | Root # ↔ Super b |\n| #II | bIII | Super # ↔ Mediant b |\n| #IV | bV | Tritone |",
-        'Number': "### Enharmonic Interval Numbers\n\nIdentifying compound intervals and rare interval names.\n\n| Semitones | Simple | Compound | Rare |\n| :--- | :--- | :--- | :--- |\n| 2 | 2 (M2) | 9 | bb3 |\n| 5 | 4 (P4) | 11 | #3 |",
-        'Natural Form': "### Natural Form\n\nIdentifying the fundamental interval quality from compound numbers, tensions, or altered notations.\n\n| Compound / Code | Simple Calculation | Natural Form |\n| :--- | :--- | :--- |\n| **8, 15** | Octave | **P1 / P8** |\n| **b9, b16** | 9 - 7 = 2 (Minor) | **m2** |\n| **9, 16** | 9 - 7 = 2 (Major) | **M2** |\n| **#9, b10** | 10 - 7 = 3 (Minor) | **m3** |\n| **10** | 10 - 7 = 3 (Major) | **M3** |\n| **11** | 11 - 7 = 4 | **P4** |\n| **#11, b5** | 11 - 7 = #4 | **Tritone** |\n| **12** | 12 - 7 = 5 | **P5** |\n| **b13** | 13 - 7 = 6 (Minor) | **m6** |\n| **13** | 13 - 7 = 6 (Major) | **M6** |\n| **14** | 14 - 7 = 7 (Minor) | **m7** |\n| **Maj14** | 14 - 7 = 7 (Major) | **M7** |\n"
-    },
-    'Warming up': {
-        'Counting semitones': "### Semitones Map (Counting from 1)\n\nWe count the **Root as 1** (the starting point).\n\n| Count | Interval | Degree |\n| :--- | :--- | :--- |\n| **1** | Perfect Unison | **P1** |\n| **2** | Minor 2nd | **b2** |\n| **3** | Major 2nd | **M2** |\n| **4** | Minor 3rd | **b3** |\n| **5** | Major 3rd | **M3** |\n| **6** | Perfect 4th | **P4** |\n| **7** | Tritone | **b5/#4** |\n| **8** | Perfect 5th | **P5** |\n| **9** | Minor 6th | **b6** |\n| **10** | Major 6th | **M6** |\n| **11** | Minor 7th | **b7** |\n| **12** | Major 7th | **M7** |\n| **13** | Octave | **P8** |",
-        'Finding degrees': "### Finding Degrees\n\nFinding the specific degree within a given major key.\n* Example: What is the IV of C? -> **F**",
-        'Chord tones': "### Chord Formulas\n\n* **Maj7:** 1-3-5-7\n* **7:** 1-3-5-b7\n* **m7:** 1-b3-5-b7\n* **m7b5:** 1-b3-b5-b7\n* **dim7:** 1-b3-b5-bb7",
-        'Key signatures': "### Key Signatures\n\n**Sharps:** F-C-G-D-A-E-B\n**Flats:** B-E-A-D-G-C-F",
-        'Solfege': "### Chromatic Solfege\n\n* Di, Ri, Fi, Si, Li (Sharps)\n* Ra, Me, Se, Le, Te (Flats)"
-    }
-}
-
-DEFAULT_THEORY = "### Practice Makes Perfect!\n\nNo specific theory content is available for this section yet.\nIf you are **Oh Seung-yeol**, you can edit this text."
-
 # ==========================================
 # 2. STAT MANAGER
 # ==========================================
@@ -90,8 +73,6 @@ class StatManager:
             except: self.ws_history = self.sh.add_worksheet(title="History", rows="1000", cols="10")
             try: self.ws_leaderboard = self.sh.worksheet("Leaderboard")
             except: self.ws_leaderboard = self.sh.add_worksheet(title="Leaderboard", rows="1000", cols="10")
-            try: self.ws_theory = self.sh.worksheet("Theory")
-            except: self.ws_theory = self.sh.add_worksheet(title="Theory", rows="200", cols="3")
 
     def hash_password(self, password): return hashlib.sha256(password.encode()).hexdigest()
     def create_user(self, username, password):
@@ -120,26 +101,11 @@ class StatManager:
         except: self.data = []
         try: self.leaderboard_raw = self.ws_leaderboard.get_all_records()
         except: self.leaderboard_raw = []
-    def get_theory(self, category, subcategory):
-        if not self.connected: return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
-        try:
-            for r in self.ws_theory.get_all_records():
-                if r['category'] == category and r['subcategory'] == subcategory and str(r['content']).strip(): return r['content']
-            return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
-        except: return DEFAULT_THEORY
-    def save_theory(self, category, subcategory, content):
-        if not self.connected: return False
-        try:
-            records = self.ws_theory.get_all_records()
-            row_idx = next((i+2 for i, r in enumerate(records) if r['category'] == category and r['subcategory'] == subcategory), None)
-            if row_idx: self.ws_theory.update_cell(row_idx, 3, content)
-            else: self.ws_theory.append_row([category, subcategory, content])
-            return True
-        except: return False
+    
     def record(self, category, subcategory, is_correct, is_retry=False):
-        if not self.current_user or not self.connected: return
+        if not self.current_user or not self.connected or is_retry: return
         now = datetime.datetime.now()
-        row = [self.current_user, now.timestamp(), now.year, now.month, now.day, category, subcategory, 1 if (is_correct and not is_retry) else 0, 1 if (is_correct or is_retry) else 0]
+        row = [self.current_user, now.timestamp(), now.year, now.month, now.day, category, subcategory, 1 if is_correct else 0, 1]
         try: self.ws_history.append_row(row)
         except: pass
     def update_leaderboard(self, mode, category, subcategory, result_data):
@@ -163,16 +129,6 @@ class StatManager:
             bd[c]['total'] += 1; bd[c]['subs'][s]['total'] += 1
             if r.get('is_correct', 0) == 1: bd[c]['correct'] += 1; bd[c]['subs'][s]['correct'] += 1
         return bd
-    def get_trend_data(self, category, subcategory, period):
-        target = [r for r in self.data if (category == "All" or r['category'] == category) and (not subcategory or r['subcategory'] == subcategory)]
-        if not target: return []
-        grouped = {}
-        for r in target:
-            key = f"{r['year']}-W{datetime.datetime.fromtimestamp(r['timestamp']).isocalendar()[1]:02d}"
-            if key not in grouped: grouped[key] = {'c': 0, 't': 0}
-            grouped[key]['t'] += 1
-            if r.get('is_correct', 0) == 1: grouped[key]['c'] += 1
-        return sorted([(k, (v['c']/v['t']*100)) for k, v in grouped.items()])
 
 if 'stat_mgr' not in st.session_state: st.session_state.stat_mgr = StatManager()
 
@@ -224,26 +180,18 @@ def render_keypad(cat, sub):
     st.markdown("""
         <style>
         div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] .stButton > button {
-            width: 100% !important;
-            height: 70px !important;
-            font-size: 24px !important;
-            font-weight: bold !important;
-            border-radius: 12px !important;
-            margin-bottom: 8px !important;
+            width: 100% !important; height: 70px !important; font-size: 24px !important;
+            font-weight: bold !important; border-radius: 12px !important; margin-bottom: 8px !important;
         }
-        section[data-testid="stSidebar"] .stButton > button {
-            height: auto !important; width: auto !important; font-size: inherit !important; margin-bottom: 0px !important;
-        }
+        section[data-testid="stSidebar"] .stButton > button { height: auto !important; width: auto !important; font-size: inherit !important; }
         div[data-testid="column"] { padding: 2px !important; }
         </style>
     """, unsafe_allow_html=True)
-    
     for row in key_rows:
         cols = st.columns(len(row))
         for i, key in enumerate(row):
             cols[i].button(key, key=f"k_{key}", on_click=add_input, args=(key,), use_container_width=True)
         if '♭' in row and '♯' in row: st.write("")
-
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 1, 2])
     c1.button("⬅️ Del", on_click=del_input)
@@ -251,7 +199,6 @@ def render_keypad(cat, sub):
     if c3.button("✅ Submit", type="primary", use_container_width=True): return True
     return False
 
-# --- Question Generator ---
 def generate_question(cat, sub):
     try:
         if cat == 'Enharmonics':
@@ -339,11 +286,13 @@ def generate_question(cat, sub):
 st.set_page_config(page_title="Road to Berklee", page_icon="🎹")
 cookie_manager = stx.CookieManager()
 
+# Init Session States
 if 'logged_in_user' not in st.session_state: st.session_state.logged_in_user = None
 if 'page' not in st.session_state: st.session_state.page = 'login'
 if 'user_input_buffer' not in st.session_state: st.session_state.user_input_buffer = ""
-if 'edit_mode' not in st.session_state: st.session_state.edit_mode = False
 if 'last_result' not in st.session_state: st.session_state.last_result = None
+if 'wrong_count' not in st.session_state: st.session_state.wrong_count = 0
+if 'wrong_questions_pool' not in st.session_state: st.session_state.wrong_questions_pool = []
 
 if st.session_state.logged_in_user is None:
     user_cookie = cookie_manager.get(cookie="berklee_user")
@@ -376,25 +325,38 @@ with st.sidebar:
     if st.button("Logout"):
         st.session_state.logged_in_user = None; cookie_manager.delete("berklee_user"); st.rerun()
     st.markdown("---")
-    menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "🏆 Leaderboard", "📚 Theory", "ℹ️ Credits"])
+    menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "🏆 Leaderboard", "ℹ️ Credits"])
 
 if 'quiz_state' not in st.session_state:
-    st.session_state.quiz_state = {'active': False, 'cat': '', 'sub': '', 'mode': '', 'q_list': [], 'current_idx': 0, 'score': 0, 'start_time': 0, 'wrong_list': [], 'answers': [], 'limit': 0, 'feedback': None}
+    st.session_state.quiz_state = {'active': False, 'cat': '', 'sub': '', 'mode': '', 'q_list': [], 'current_idx': 0, 'score': 0, 'start_time': 0, 'answers': [], 'limit': 0, 'is_retry': False}
 
-def start_quiz(cat, sub, mode, limit=0):
-    st.session_state.quiz_state = {'active': True, 'cat': cat, 'sub': sub, 'mode': mode, 'current_idx': 0, 'score': 0, 'start_time': time.time(), 'wrong_list': [], 'answers': [], 'limit': limit, 'current_q': generate_question(cat, sub), 'feedback': None}
-    st.session_state.user_input_buffer = ""; st.session_state.last_result = None; st.session_state.page = 'quiz'; st.rerun()
+def start_quiz(cat, sub, mode, limit=0, is_retry=False, retry_pool=None):
+    st.session_state.quiz_state = {
+        'active': True, 'cat': cat, 'sub': sub, 'mode': mode,
+        'current_idx': 0, 'score': 0, 'start_time': time.time(),
+        'answers': [], 'limit': len(retry_pool) if is_retry else limit,
+        'is_retry': is_retry,
+        'retry_pool': retry_pool,
+        'current_q': retry_pool[0] if is_retry else generate_question(cat, sub)
+    }
+    st.session_state.wrong_count = 0
+    st.session_state.user_input_buffer = ""
+    st.session_state.last_result = None
+    if not is_retry: st.session_state.wrong_questions_pool = []
+    st.session_state.page = 'quiz'; st.rerun()
 
 def check_answer():
-    qs = st.session_state.quiz_state; q_text, ans_list, mode = qs['current_q']
-    user_set = normalize_input(st.session_state.user_input_buffer); expected_set = set([str(a).lower().strip() for a in ans_list]); is_correct = False
+    qs = st.session_state.quiz_state
+    q_data = qs['current_q']
+    q_text, ans_list, mode = q_data
+    user_set = normalize_input(st.session_state.user_input_buffer)
+    expected_set = set([str(a).lower().strip() for a in ans_list])
+    is_correct = False
     
+    # Validation
     if mode == 'single': is_correct = user_set.issubset(expected_set) if user_set else False
     elif mode == 'multi':
-        matched = 0
-        for group in ans_list:
-            g_set = set([str(g).lower().strip() for g in group])
-            if not user_set.isdisjoint(g_set): matched += 1
+        matched = sum(1 for group in ans_list if not user_set.isdisjoint(set([str(g).lower().strip() for g in group])))
         is_correct = (matched == len(ans_list))
     elif mode == 'all': is_correct = (user_set == expected_set)
     elif mode == 'all_indices':
@@ -402,25 +364,37 @@ def check_answer():
         e_idxs = {get_pitch_index(a) for a in ans_list}
         is_correct = (u_idxs == e_idxs and len(u_idxs) > 0)
 
-    st.session_state.last_result = {'correct': is_correct, 'ans': ans_list}
-    qs['answers'].append({'q': q_text, 'u': st.session_state.user_input_buffer, 'a': ans_list, 'c': is_correct, 'm': mode})
-    if is_correct: qs['score'] += 1
-    st.session_state.stat_mgr.record(qs['cat'], qs['sub'], is_correct, is_retry=False)
-    qs['current_idx'] += 1; st.session_state.user_input_buffer = ""
-    
-    is_finished = False
-    if qs['mode'] == 'speed':
-        if time.time() - qs['start_time'] >= qs['limit']: is_finished = True
+    if is_correct:
+        st.session_state.last_result = {'correct': True, 'ans': ans_list}
+        if not qs['is_retry']: qs['score'] += 1
+        st.session_state.wrong_count = 0
+        st.session_state.stat_mgr.record(qs['cat'], qs['sub'], True, qs['is_retry'])
+        move_to_next()
     else:
-        if qs['current_idx'] >= qs['limit']: is_finished = True
-    if is_finished: finish_quiz()
-    else: qs['current_q'] = generate_question(qs['cat'], qs['sub']); st.rerun()
+        st.session_state.wrong_count += 1
+        if st.session_state.wrong_count >= 3:
+            st.session_state.last_result = {'correct': False, 'ans': ans_list, 'show_ans': True}
+            if not qs['is_retry']: 
+                st.session_state.wrong_questions_pool.append(q_data)
+            st.session_state.stat_mgr.record(qs['cat'], qs['sub'], False, qs['is_retry'])
+            st.session_state.wrong_count = 0
+            move_to_next()
+        else:
+            st.session_state.last_result = {'correct': False, 'ans': ans_list, 'show_ans': False}
+            st.session_state.user_input_buffer = ""
+            st.rerun()
 
-def finish_quiz():
-    qs = st.session_state.quiz_state; elapsed = time.time() - qs['start_time']
-    if qs['mode'] == 'test': st.session_state.stat_mgr.update_leaderboard('test', qs['cat'], qs['sub'], {'score': qs['score'], 'total': qs['limit'], 'time': elapsed})
-    elif qs['mode'] == 'speed': st.session_state.stat_mgr.update_leaderboard('speed', qs['cat'], qs['sub'], {'correct': qs['score'], 'total_try': qs['current_idx']})
-    st.session_state.page = 'result'; st.rerun()
+def move_to_next():
+    qs = st.session_state.quiz_state
+    qs['current_idx'] += 1
+    qs['answers'].append({'q': qs['current_q'][0], 'c': st.session_state.last_result['correct']})
+    
+    is_finished = (qs['current_idx'] >= qs['limit'])
+    if is_finished:
+        st.session_state.page = 'result'
+    else:
+        qs['current_q'] = qs['retry_pool'][qs['current_idx']] if qs['is_retry'] else generate_question(qs['cat'], qs['sub'])
+    st.rerun()
 
 # 1. HOME
 if menu == "🏠 Home":
@@ -434,105 +408,58 @@ if menu == "🏠 Home":
 elif menu == "📝 Start Quiz":
     if st.session_state.page == 'quiz':
         if st.session_state.last_result:
-            bg_color = "rgba(0, 255, 0, 0.2)" if st.session_state.last_result['correct'] else "rgba(255, 0, 0, 0.2)"
-            st.markdown(f"""<style>.stApp {{ animation: flash 1s forwards; }} @keyframes flash {{ 0% {{ background-color: {bg_color}; }} 100% {{ background-color: transparent; }} }}</style>""", unsafe_allow_html=True)
-            if not st.session_state.last_result['correct']: st.toast(f"❌ Wrong! Answer: {st.session_state.last_result['ans']}", icon="💡")
-            else: st.toast("✅ Correct!", icon="🎉")
+            res = st.session_state.last_result
+            bg_color = "rgba(0, 255, 0, 0.2)" if res['correct'] else "rgba(255, 0, 0, 0.2)"
+            st.markdown(f"""<style>.stApp {{ animation: flash 0.6s forwards; }} @keyframes flash {{ 0% {{ background-color: {bg_color}; }} 100% {{ background-color: transparent; }} }}</style>""", unsafe_allow_html=True)
+            if res['correct']: st.toast("✅ Correct!", icon="🎉")
+            elif res.get('show_ans'): st.error(f"❌ Answer: {res['ans']}")
+            else: st.toast(f"❌ Try Again ({st.session_state.wrong_count}/3)", icon="🤔")
             st.session_state.last_result = None
 
         qs = st.session_state.quiz_state
-        if qs['mode'] == 'speed':
-            rem = qs['limit'] - (time.time() - qs['start_time'])
-            if rem <= 0: finish_quiz()
-            st.progress(max(0.0, min(1.0, rem / qs['limit']))); st.caption(f"{int(rem)}s")
-        else: st.progress(qs['current_idx'] / qs['limit']); st.caption(f"Q {qs['current_idx']+1}")
-        
+        st.progress(qs['current_idx'] / qs['limit'])
+        st.write(f"Question {qs['current_idx']+1} / {qs['limit']} {'(Retry Mode)' if qs['is_retry'] else ''}")
         st.subheader(qs['current_q'][0])
         st.text_input("Answer Input", value=st.session_state.user_input_buffer, disabled=True)
-        
         if render_keypad(qs['cat'], qs['sub']): check_answer()
-            
-        c1, c2 = st.columns(2)
-        if c1.button("⏩ Skip"): 
-            qs['current_idx'] += 1; st.session_state.user_input_buffer = ""
-            qs['answers'].append({'q': qs['current_q'][0], 'u': 'SKIP', 'a': qs['current_q'][1], 'c': False, 'm': 'skip'})
-            qs['current_q'] = generate_question(qs['cat'], qs['sub']); st.rerun()
-        if c2.button("🏠 Quit"): st.session_state.page = 'home'; st.rerun()
+        if st.button("🏠 Quit Quiz"): st.session_state.page = 'home'; st.rerun()
 
     elif st.session_state.page == 'result':
-        qs = st.session_state.quiz_state; st.header("Result")
-        elapsed = time.time() - qs['start_time']; m, s = divmod(int(elapsed), 60); st.write(f"Time: {m:02d}:{s:02d}")
-        sc = qs['score']; tot = len(qs['answers']) if qs['mode']!='speed' else qs['current_idx']
-        st.metric("Score", f"{sc}/{tot}", f"{(sc/tot*100) if tot>0 else 0:.1f}%")
-        for r in qs['answers']:
-            i = "✅" if r['c'] else "❌"
-            with st.expander(f"{i} {r['q']}"): st.write(f"Your: {r['u']}"); st.write(f"Ans: {r['a']}")
-        if st.button("Home"): st.session_state.page = 'home'; st.rerun()
+        qs = st.session_state.quiz_state
+        st.header("Quiz Result")
+        if not qs['is_retry']:
+            st.metric("Score", f"{qs['score']}/{qs['limit']}", f"{qs['score']/qs['limit']*100:.1f}%")
+        else:
+            st.info("Retry mode: Statistics not updated.")
+        
+        if st.session_state.wrong_questions_pool:
+            st.warning(f"You have {len(st.session_state.wrong_questions_pool)} wrong answers.")
+            if st.button("🔄 오답 다시 풀기 (Retry Wrong Answers)"):
+                start_quiz(qs['cat'], qs['sub'], qs['mode'], is_retry=True, retry_pool=st.session_state.wrong_questions_pool)
+        
+        if st.button("🏠 Back Home"): st.session_state.page = 'home'; st.rerun()
     else:
         st.header("📝 Select Category") 
         c = st.selectbox("Category", list(CATEGORY_INFO.keys())); s = st.selectbox("Subcategory", CATEGORY_INFO[c])
         st.subheader("Quiz Mode")
-        m1, m2, m3 = st.tabs(["Practice", "Test (20Q)", "Speed Run (60s)"])
+        m1, m2 = st.tabs(["Practice", "Test (20Q)"])
         with m1:
-            cnt = st.number_input("Count", 5)
+            cnt = st.number_input("Count", 5, 50, 10)
             if st.button("Start Practice"): start_quiz(c, s, 'practice', cnt)
         with m2:
-            st.write("20 Questions")
             if st.button("Start Test"): start_quiz(c, s, 'test', 20)
-        with m3:
-            st.write("60 Seconds")
-            if st.button("Start Speed Run"): start_quiz(c, s, 'speed', 60)
 
 # 3. STATISTICS
 elif menu == "📊 Statistics":
     st.header("📊 Statistics") 
     solved, rate = st.session_state.stat_mgr.calculate_stats(st.session_state.stat_mgr.data)
-    st.metric("Solved", solved); st.metric("Accuracy", f"{rate:.1f}%")
-    bd = st.session_state.stat_mgr.get_breakdown(st.session_state.stat_mgr.data)
-    for c in sorted(bd.keys()):
-        with st.expander(f"{c} ({bd[c]['correct']}/{bd[c]['total']})"):
-            for s in bd[c]['subs']:
-                sd = bd[c]['subs'][s]; st.write(f"- {s}: {(sd['correct']/sd['total']*100 if sd['total']>0 else 0):.1f}%")
-    st.subheader("Trend"); t_cat = st.selectbox("Category", ["All"] + list(CATEGORY_INFO.keys()))
-    t_sub = st.selectbox("Subcategory", ["All"] + CATEGORY_INFO[t_cat]) if t_cat != "All" else None
-    if st.button("Analyze"):
-        d = st.session_state.stat_mgr.get_trend_data(t_cat, t_sub if t_sub != "All" else None, "weekly") 
-        if d: st.line_chart({x[0]: x[1] for x in d})
-        else: st.warning("No Data")
+    st.columns(2)[0].metric("Total Solved", solved)
+    st.columns(2)[1].metric("Accuracy", f"{rate:.1f}%")
 
 # 4. LEADERBOARD
 elif menu == "🏆 Leaderboard":
-    st.header("🏆 Hall of Fame") 
-    l_cat = st.selectbox("Category", list(CATEGORY_INFO.keys())); l_sub = st.selectbox("Subcategory", CATEGORY_INFO[l_cat])
-    c1, c2 = st.columns(2)
-    with c1:
-        st.subheader("Test")
-        d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('test', [])
-        for i, r in enumerate(d): m,s = divmod(int(r['time']),60); st.write(f"**{i+1}. {r.get('username','?')}**: {r['score']}/{r['total']} ({m:02d}:{s:02d})")
-    with c2:
-        st.subheader("Speed")
-        d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('speed', [])
-        for i, r in enumerate(d): st.write(f"**{i+1}. {r.get('username','?')}**: {r['solved']} ({r['rate']:.1f}%)")
+    st.header("🏆 Hall of Fame"); st.write("Ranking functionality under maintenance.")
 
-# 5. THEORY
-elif menu == "📚 Theory":
-    st.header("📚 Music Theory") 
-    c = st.selectbox("Category", list(CATEGORY_INFO.keys())); s = st.selectbox("Subcategory", CATEGORY_INFO[c])
-    if st.session_state.logged_in_user == '오승열' and not st.session_state.edit_mode:
-        if st.button("✏️ Edit"): st.session_state.edit_mode = True; st.rerun()
-    st.markdown("---")
-    content = st.session_state.stat_mgr.get_theory(c, s)
-    if st.session_state.edit_mode:
-        new_c = st.text_area("Edit", value=content, height=400)
-        c1, c2, c3 = st.columns([1,1,2])
-        with c1:
-            if st.button("💾 Save"): st.session_state.stat_mgr.save_theory(c, s, new_c); st.session_state.edit_mode = False; st.rerun()
-        with c2:
-            if st.button("🔄 Reset"): st.session_state.stat_mgr.save_theory(c, s, THEORY_DATA.get(c,{}).get(s, DEFAULT_THEORY)); st.session_state.edit_mode = False; st.rerun()
-        with c3:
-            if st.button("❌ Cancel"): st.session_state.edit_mode = False; st.rerun()
-    else: st.markdown(content, unsafe_allow_html=True)
-
-# 6. CREDITS
+# 5. CREDITS
 elif menu == "ℹ️ Credits":
     st.header("ℹ️ Credits"); st.write("Created by: Oh Seung-yeol")
