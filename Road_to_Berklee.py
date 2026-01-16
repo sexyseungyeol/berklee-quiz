@@ -6,6 +6,8 @@ from datetime import timedelta
 import hashlib
 import gspread
 import os
+import pandas as pd
+import altair as alt
 
 # Cookie Manager Check
 try:
@@ -44,7 +46,7 @@ CATEGORY_INFO = {
 }
 
 # ==========================================
-# 2. STAT MANAGER (Full Integration)
+# 2. STAT MANAGER (Enhanced with Date Range)
 # ==========================================
 class StatManager:
     def __init__(self, key_file="service_account.json", sheet_name="Berklee_DB"):
@@ -118,13 +120,21 @@ class StatManager:
         grouped = {}
         for r in target:
             dt = datetime.datetime.fromtimestamp(float(r['timestamp']))
-            if period_type == 'weekly': key = f"{dt.year}-W{dt.isocalendar()[1]:02d}"
-            elif period_type == 'monthly': key = f"{dt.year}-{dt.month:02d}"
-            else: key = str(dt.year)
-            if key not in grouped: grouped[key] = {'c': 0, 't': 0}
+            if period_type == 'weekly': 
+                isocal = dt.isocalendar()
+                key = f"{isocal[0]}-Week {isocal[1]}"
+                # Calculate week range
+                start = dt - timedelta(days=dt.weekday())
+                end = start + timedelta(days=6)
+                date_range = f"{start.strftime('%m.%d')} ~ {end.strftime('%m.%d')}"
+            else: 
+                key = f"{dt.year}-{dt.month:02d}"; date_range = f"{dt.year}.{dt.month}"
+            
+            if key not in grouped: grouped[key] = {'c': 0, 't': 0, 'range': date_range}
             grouped[key]['t'] += 1
             if r.get('is_correct', 0) == 1: grouped[key]['c'] += 1
-        return sorted([(k, (v['c']/v['t']*100)) for k, v in grouped.items()])
+        
+        return sorted([{'Period': k, 'Accuracy': (v['c']/v['t']*100), 'Range': v['range']} for k, v in grouped.items()], key=lambda x: x['Period'])
 
 if 'stat_mgr' not in st.session_state: st.session_state.stat_mgr = StatManager()
 
@@ -138,135 +148,64 @@ def get_pitch_index(p):
 def get_pitch_from_index(idx): return NOTES[idx % 12]
 def normalize_input(text): return set([p.strip().lower() for p in text.replace('♭','b').replace('♯','#').replace('/',',').split(',') if p.strip()])
 
-# [CALLBACKS]
 def add_input(k): st.session_state.user_input_buffer += k
 def del_input(): st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1]
 def clear_input(): st.session_state.user_input_buffer = ""
 
 def get_smart_keypad(cat, sub):
-    """지능형 레이아웃: 문제 유형에 맞는 버튼만 순서대로 추출"""
     layout = []
-    
-    # 1. 임시표 (b, #) - 대부분의 문제에 필요
-    if not (cat == 'Warming up' and sub == 'Counting semitones'):
-        layout.append(['♭', '♯'])
-    
-    # 2. 쉼표 (,) - 다중 정답 요구 시
+    # 1. 임시표 (♭, ♯)
+    layout.append(['♭', '♯'])
+    # 2. 쉼표 (,)
     if any(s in sub for s in ['Chord tones', 'Alterations', 'Tensions', 'Dom7', 'Dim7', 'Pitches', 'Pivot']):
         layout.append([','])
-        
-    # 3. 음정 성질 (+, M, P, m, -)
+    # 3. 음정 성질 (+, M, P, m, -) - [FIXED: Intervals 및 특정 sub 반영]
     if cat == 'Intervals' or any(s in sub for s in ['Natural Form', 'Number']):
         layout.append(['+', 'M', 'P', 'm', '-'])
-        
     # 4. 음 이름 (C~B)
     if any(s in sub for s in ['Finding', 'tones', 'Pitch', 'Tracking', 'Key', 'Pitches', 'Pivot', 'Similarities']):
         layout.append(['C', 'D', 'E', 'F'])
         layout.append(['G', 'A', 'B'])
-        
-    # 5. 도수 (I ~ VII) - 분할 배치
+    # 5. 도수 (I ~ VII)
     if any(s in sub for s in ['Degrees', 'Finding', 'Pitch->Deg', 'Alterations', 'Chords', 'Functions']):
         layout.append(['I', 'II', 'III'])
         layout.append(['IV', 'V', 'VI', 'VII'])
-        
     # 6. 숫자 (1 ~ 0)
     if any(s in sub for s in ['Counting', 'Number', 'Natural', 'r calc']):
         layout.append(['1', '2', '3', '4', '5'])
         layout.append(['6', '7', '8', '9', '0'])
-        
     # 7. 모드 (Ionian ~ Locrian)
     if cat == 'Modes' or sub in ['Avail Scales', 'Similarities']:
         layout.append(['Ionian', 'Dorian', 'Phrygian', 'Lydian'])
         layout.append(['Mixolydian', 'Aeolian', 'Locrian'])
-        
     # 8. 스케일 (Natural minor 등)
     if cat == 'Minor' or sub in ['Similarities', 'Degrees', 'Pitches']:
         layout.append(['Natural minor', 'Harmonic minor', 'Melodic minor'])
-        
-    # 9. 코드 타입 (maj7 ~ aug) - / 보다 우선순위 높음
+    # 9. 코드 타입
     if any(c in cat for c in ['Chord Forms', 'Minor', 'Tritones', 'Mastery']) or 'Chords' in sub:
         layout.append(['maj7', 'm7', '7', 'm7b5'])
         layout.append(['dim7', '6', 'm6', 'sus4', 'aug'])
-        
-    # 10. 슬래시 (/) - 최하위 우선순위
+    # 10. 슬래시 (/)
     if sub in ['9 chord', 'Rootless', 'Pivot']:
         layout.append(['/'])
-
-    # 솔페이지 예외
     if sub == 'Solfege':
         return [['Do','Re','Mi','Fa'], ['Sol','La','Ti'], ['Di','Ri','Fi','Si','Li'], ['Ra','Me','Se','Le','Te']]
-            
     return layout
 
 def render_keypad(cat, sub):
     key_rows = get_smart_keypad(cat, sub)
-    st.markdown("""
-        <style>
-        div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] .stButton > button {
-            width: 100% !important; height: 70px !important; min-height: 70px !important;
-            font-size: 18px !important; font-weight: bold !important; border-radius: 12px !important;
-            margin-bottom: 6px !important; padding: 0px !important;
-        }
-        section[data-testid="stSidebar"] .stButton > button { height: auto !important; width: auto !important; }
-        div[data-testid="column"] { padding: 1px !important; }
-        </style>
-    """, unsafe_allow_html=True)
-    
+    st.markdown("""<style>div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] .stButton > button { width: 100% !important; height: 70px !important; min-height: 70px !important; font-size: 18px !important; font-weight: bold !important; border-radius: 10px !important; margin-bottom: 6px !important; }</style>""", unsafe_allow_html=True)
     for i, row in enumerate(key_rows):
         cols = st.columns(len(row))
         for j, key in enumerate(row):
             cols[j].button(key, key=f"k_{i}_{j}_{key}", on_click=add_input, args=(key,), use_container_width=True)
-        if i == 0: st.write("") # 임시표 그룹 뒤 간격
-
+        if i == 0: st.write("") 
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 1, 2])
     c1.button("⬅️ Del", on_click=del_input, use_container_width=True)
     c2.button("❌ Clear", on_click=clear_input, use_container_width=True)
     if c3.button("✅ Submit", type="primary", use_container_width=True): return True
     return False
-
-# --- Question Generator (Full Restoration) ---
-def generate_question(cat, sub):
-    try:
-        root = random.choice(NOTES); ridx = get_pitch_index(root)
-        if cat == 'Enharmonics':
-            if sub == 'Degrees':
-                t, a = random.choice([('#VII','I'),('#I','bII'),('#II','bIII'),('bIV','III'),('IV','#III'),('#V','bVI'),('#VI','bVII')])
-                return f"What is {t}'s enharmonic?", [a], 'single'
-            if sub == 'Number':
-                sets = [['1','8','bb2'],['#1','b2','#8','b9'],['2','9','bb3'],['#2','b3','#9','b10'],['3','10','b4'],['4','11','#3'],['#4','b5','#11','b12'],['5','12','bb6'],['#5','b6','#12','b13'],['6','13','bb7'],['#6','b7','#13','b14'],['7','14','b8','b1']]
-                c = random.choice(sets); t = random.choice(c); return f"What are {t}'s enharmonics?", [x for x in c if x!=t], 'single'
-            if sub == 'Natural Form':
-                k, q = random.choice(list(NATURAL_INTERVAL_DATA.items())); qn = random.choice(q)
-                return f"What is {qn}'s natural form?", [k], 'single'
-        elif cat == 'Warming up':
-            if sub == 'Counting semitones': d = random.randint(1,12); return f"Which degree is {d} semitones away? (P1=1)", DISTANCE_TO_DEGREE[d], 'single'
-            if sub == 'Finding degrees':
-                dn, dv = random.choice(list(DEGREE_MAP.items())); p = random.choice(NOTES)
-                return f"What is {dn} of {p} Key?", ENHARMONIC_GROUPS[(get_pitch_index(p)+dv)%12], 'single'
-            if sub == 'Chord tones':
-                p, ct = random.choice(NOTES), random.choice(list(CHORD_FORMULAS.keys())); idx = get_pitch_index(p)
-                ans = [get_pitch_from_index((idx+interval)%12) for interval in CHORD_FORMULAS[ct]]
-                return f"Chord tones of {p}{ct}? (Use Comma)", ans, 'all_indices'
-            if sub == 'Solfege': k,v = random.choice(list(SOLFEGE.items())); return f"Solfege of {k}?", [v], 'single'
-        elif cat == 'Intervals':
-            data = [('m2',1,'M7'),('M2',2,'m7'),('m3',3,'M6'),('M3',4,'m6'),('P4',5,'P5'),('P5',7,'P4'),('m6',8,'M3'),('M6',9,'m3'),('m7',10,'M2'),('M7',11,'m2')]; q_int, semis, inv_int = random.choice(data)
-            if sub == 'Alternative': idx = (get_pitch_index(root)+semis)%12; return f"Alternative to {root}{q_int}?", [f"{r}{inv_int}" for r in get_enharmonic_names(idx)], 'single'
-            if sub == 'Tracking': idx = (get_pitch_index(root)+semis)%12; return f"Pitch {q_int} up from {root}?", get_enharmonic_names(idx), 'single'
-        elif cat == 'Chord Forms':
-            if sub == 'Relationships':
-                qt = random.randint(1,2)
-                if qt==1: return f"Change {root}m7 to 6th?", [f"{r}6" for r in get_enharmonic_names(ridx+3)], 'single'
-                else: return f"Change {root}maj7 to 7th?", [f"{r}7" for r in get_enharmonic_names(ridx)], 'single'
-            if sub == 'Extract (Degree)': d,v = random.choice(list(DEGREE_MAP.items())); return f"m7b5 from {d}7(9)?", [f"{k}m7b5" for k, val in DEGREE_MAP.items() if val==(v+4)%12], 'single'
-        elif cat == 'Modes':
-            m = random.choice(list(SCALES_DATA.keys())[:7])
-            if sub == 'Alterations': return f"Alterations in {m}?", MODE_ALTERATIONS.get(m, []), 'all'
-            if sub == 'Tensions': return f"Tensions of {m}?", MODE_TENSIONS.get(m, []), 'all'
-        elif cat == 'Mastery':
-            if sub == 'Functions': f=random.choice(list(CHORD_FUNCTIONS.keys())); c=random.choice(CHORD_FUNCTIONS[f]); return f"Function of {c}?", DUAL_FUNCTION_CHORDS.get(c, [f]), 'single'
-        return f"Practice: {cat}/{sub} Root?", ["C"], 'single'
-    except: return "Question Error", ["C"], 'single'
 
 # ==========================================
 # 4. APP UI & NAVIGATION
@@ -313,16 +252,42 @@ def start_quiz(cat, sub, mode, limit=0, is_retry=False, retry_pool=None):
     if not is_retry: st.session_state.wrong_questions_pool = []
     st.session_state.page = 'quiz'; st.rerun()
 
+# --- Question Generator (Restoration) ---
+def generate_question(cat, sub):
+    try:
+        root = random.choice(NOTES); ridx = get_pitch_index(root)
+        if cat == 'Enharmonics':
+            if sub == 'Degrees':
+                t, a = random.choice([('#VII','I'),('#I','bII'),('#II','bIII'),('bIV','III'),('IV','#III'),('#V','bVI'),('#VI','bVII')])
+                return f"What is {t}'s enharmonic?", [a], 'single'
+            if sub == 'Number':
+                sets = [['1','8','bb2'],['#1','b2','#8','b9'],['2','9','bb3'],['#2','b3','#9','b10'],['3','10','b4'],['4','11','#3'],['#4','b5','#11','b12'],['5','12','bb6'],['#5','b6','#12','b13'],['6','13','bb7'],['#6','b7','#13','b14'],['7','14','b8','b1']]
+                c = random.choice(sets); t = random.choice(c); return f"What are {t}'s enharmonics?", [x for x in c if x!=t], 'single'
+            if sub == 'Natural Form':
+                k, q = random.choice(list(NATURAL_INTERVAL_DATA.items())); qn = random.choice(q)
+                return f"What is {qn}'s natural form?", [k], 'single'
+        elif cat == 'Warming up':
+            if sub == 'Counting semitones': d = random.randint(1,12); return f"Which degree is {d} semitones away? (P1=1)", DISTANCE_TO_DEGREE[d], 'single'
+            if sub == 'Finding degrees':
+                dn, dv = random.choice(list(DEGREE_MAP.items())); p = random.choice(NOTES)
+                return f"What is {dn} of {p} Key?", ENHARMONIC_GROUPS[(get_pitch_index(p)+dv)%12], 'single'
+        elif cat == 'Intervals':
+            data = [('m2',1,'M7'),('M2',2,'m7'),('m3',3,'M6'),('M3',4,'m6'),('P4',5,'P5'),('P5',7,'P4'),('m6',8,'M3'),('M6',9,'m3'),('m7',10,'M2'),('M7',11,'m2')]; q_int, semis, inv_int = random.choice(data)
+            if sub == 'Alternative': idx = (get_pitch_index(root)+semis)%12; return f"Alternative to {root}{q_int}?", [f"{r}{inv_int}" for r in get_enharmonic_names(idx)], 'single'
+            if sub == 'Tracking': idx = (get_pitch_index(root)+semis)%12; return f"Pitch {q_int} up from {root}?", get_enharmonic_names(idx), 'single'
+        return f"Practice: {cat}/{sub} Root?", ["C"], 'single'
+    except: return "Q Error", ["C"], 'single'
+
 def check_answer():
     qs = st.session_state.quiz_state; q_data = qs['current_q']; q_text, ans_list, mode = q_data
-    u_set = normalize_input(st.session_state.user_input_buffer); e_set = set([str(a).lower().strip() for a in ans_list]); is_correct = False
+    u_set = normalize_input(st.session_state.user_input_buffer); e_set = set([str(a).lower().strip() for a in ans_list])
+    is_correct = False
     
     if mode == 'single': is_correct = u_set.issubset(e_set) if u_set else False
     elif mode == 'multi': is_correct = (sum(1 for g in ans_list if not u_set.isdisjoint(set([str(x).lower().strip() for x in g]))) == len(ans_list))
     elif mode == 'all': is_correct = (u_set == e_set)
     elif mode == 'all_indices':
-        u_idx = {get_pitch_index(u) for u in u_set if get_pitch_index(u)!=-1}
-        e_idx = {get_pitch_index(a) for a in ans_list}
+        u_idx = {get_pitch_index(u) for u in u_set if get_pitch_index(u)!=-1}; e_idx = {get_pitch_index(a) for a in ans_list}
         is_correct = (u_idx == e_idx and len(u_idx)>0)
 
     if is_correct:
@@ -349,13 +314,13 @@ def move_to_next():
     else: qs['current_q'] = qs['retry_pool'][qs['current_idx']] if qs['is_retry'] else generate_question(qs['cat'], qs['sub'])
     st.rerun()
 
-# --- MAIN PAGE RENDER ---
+# --- RENDERING ---
 if menu == "🏠 Home":
     col1, col2 = st.columns([1, 2])
     with col1:
         if os.path.exists("logo.png"): st.image("logo.png", width=180)
         else: st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png", width=150)
-    st.markdown("<div style='text-align: left;'><h1>Road to Berklee</h1><h3>Master Music Theory Step-by-Step</h3></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: left;'><h1>Road to Berklee</h1><h3>Master Music Theory</h3></div>", unsafe_allow_html=True)
 
 elif menu == "📝 Start Quiz":
     if st.session_state.page == 'quiz':
@@ -366,7 +331,6 @@ elif menu == "📝 Start Quiz":
             elif res.get('show_ans'): st.error(f"❌ Answer: {res['ans']}")
             else: st.toast(f"❌ Try Again ({st.session_state.wrong_count}/3)")
             st.session_state.last_result = None
-
         qs = st.session_state.quiz_state
         if qs['mode'] == 'speed':
             elapsed = time.time() - qs['start_time']
@@ -375,20 +339,15 @@ elif menu == "📝 Start Quiz":
                 st.session_state.page = 'result'; st.rerun()
             st.progress(max(0.0, min(1.0, (qs['limit']-elapsed)/qs['limit']))); st.write(f"⏱️ {int(qs['limit']-elapsed)}s | Score: {qs['score']}")
         else: st.progress(qs['current_idx'] / qs['limit']); st.write(f"Q {qs['current_idx']+1} / {qs['limit']}")
-        
-        st.subheader(qs['current_q'][0])
-        st.text_input("Answer Input", value=st.session_state.user_input_buffer, disabled=True)
+        st.subheader(qs['current_q'][0]); st.text_input("Answer Input", value=st.session_state.user_input_buffer, disabled=True)
         if render_keypad(qs['cat'], qs['sub']): check_answer()
-        if st.button("🏠 Quit Quiz"): st.session_state.page = 'home'; st.rerun()
-
+        if st.button("🏠 Quit Quiz"): st.session_state.page = 'home'; st.session_state.quiz_state['active'] = False; st.rerun()
     elif st.session_state.page == 'result':
         qs = st.session_state.quiz_state; st.header("Result")
         if not qs['is_retry']: st.metric("Score", f"{qs['score']}/{qs['limit']}", f"{qs['score']/qs['limit']*100:.1f}%")
         if st.session_state.wrong_questions_pool:
-            if st.button("🔄 오답 다시 풀기", use_container_width=True):
-                start_quiz(qs['cat'], qs['sub'], qs['mode'], is_retry=True, retry_pool=st.session_state.wrong_questions_pool)
+            if st.button("🔄 오답 다시 풀기", use_container_width=True): start_quiz(qs['cat'], qs['sub'], qs['mode'], is_retry=True, retry_pool=st.session_state.wrong_questions_pool)
         if st.button("⬅️ Back", use_container_width=True): st.session_state.page = 'home'; st.rerun()
-
     else:
         st.header("📝 Select Quiz")
         c = st.selectbox("Category", list(CATEGORY_INFO.keys())); s = st.selectbox("Sub", CATEGORY_INFO[c])
@@ -406,8 +365,7 @@ elif menu == "📊 Statistics":
     t1, t2 = st.tabs(["Cumulative", "Trend Chart"])
     with t1:
         solved, rate = st.session_state.stat_mgr.calculate_stats(st.session_state.stat_mgr.data)
-        st.columns(2)[0].metric("Total Solved", solved)
-        st.columns(2)[1].metric("Accuracy", f"{rate:.1f}%")
+        c1, c2 = st.columns(2); c1.metric("Total Solved", solved); c2.metric("Accuracy", f"{rate:.1f}%")
         bd = st.session_state.stat_mgr.get_breakdown(st.session_state.stat_mgr.data)
         for cat in sorted(bd.keys()):
             with st.expander(f"{cat}"):
@@ -416,15 +374,22 @@ elif menu == "📊 Statistics":
         cat = st.selectbox("Chart Cat", ["All"] + list(CATEGORY_INFO.keys()))
         sub = st.selectbox("Chart Sub", ["All"] + CATEGORY_INFO[cat]) if cat != "All" else None
         if st.button("Show Trend"):
-            d = st.session_state.stat_mgr.get_trend_data(cat, None if sub=="All" else sub, "weekly")
-            if d: st.line_chart({x[0]: x[1] for x in d})
+            d_list = st.session_state.stat_mgr.get_trend_data(cat, None if sub=="All" else sub, "weekly")
+            if d_list:
+                df = pd.DataFrame(d_list)
+                # [ALTAIR CHART WITH TOOLTIP]
+                chart = alt.Chart(df).mark_line(point=True).encode(
+                    x=alt.X('Period:O', title='Week'),
+                    y=alt.Y('Accuracy:Q', title='Accuracy (%)', scale=alt.Scale(domain=[0, 100])),
+                    tooltip=['Period', 'Range', alt.Tooltip('Accuracy:Q', format='.1f')]
+                ).properties(width=700, height=400).interactive()
+                st.altair_chart(chart, use_container_width=True)
             else: st.warning("No Data")
 
 elif menu == "🏆 Leaderboard":
     st.header("🏆 Hall of Fame")
     lc = st.selectbox("L-Category", list(CATEGORY_INFO.keys())); ls = st.selectbox("L-Sub", CATEGORY_INFO[lc])
-    c1, c2 = st.columns(2)
-    raw = st.session_state.stat_mgr.leaderboard_raw
+    c1, c2 = st.columns(2); raw = st.session_state.stat_mgr.leaderboard_raw
     with c1:
         st.subheader("Test Mode")
         data = sorted([r for r in raw if r['category']==lc and r['subcategory']==ls and r['mode']=='test'], key=lambda x: (-float(x['score']), float(x['time'])))
