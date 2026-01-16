@@ -44,6 +44,49 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
+# --- Initial Theory Data (Pre-filled) ---
+THEORY_DATA = {
+    'Enharmonics': {
+        'Degrees': "### Enharmonic Degrees (이명동음 도수)\n\n같은 음이지만 문맥에 따라 다르게 불리는 도수들입니다.\n\n* **#I = bII** (Db)\n* **#II = bIII** (Eb)\n* **bIV = III** (E)\n* **#IV = bV** (Gb, Tritone)\n* **#V = bVI** (Ab)\n* **#VI = bVII** (Bb)\n* **b1 = 7** (B)\n\n**Tip:** '플랫이 붙으면 다음 도수', '샵이 붙으면 같은 도수'라고 생각하면 쉽습니다.",
+        'Number': "### Enharmonic Interval Numbers\n\n음정 숫자도 이명동음 관계가 있습니다.\n\n* **Aug 1 (#1) ↔ Min 2 (b2)**\n* **Aug 2 (#2) ↔ Min 3 (b3)**\n* **Aug 4 (#4) ↔ Dim 5 (b5)**\n* **Aug 5 (#5) ↔ Min 6 (b6)**\n* **Dim 7 (bb7) ↔ Maj 6 (6)**\n\n특히 **Diminished 7th** 코드를 다룰 때 bb7을 6(장6도)로 빨리 환산하는 것이 중요합니다.",
+        'Interval': "### Natural Intervals (자연 음정)\n\n아무런 변화표가 없는 상태에서의 음정 간격입니다.\n\n* **m2 (단2도):** 1 semitone (E-F, B-C)\n* **M2 (장2도):** 2 semitones\n* **m3 (단3도):** 3 semitones\n* **M3 (장3도):** 4 semitones\n* **P4 (완전4도):** 5 semitones\n* **Tritone:** 6 semitones (The devil's interval)\n* **P5 (완전5도):** 7 semitones"
+    },
+    'Warming up': {
+        'Counting semitones': "### Semitones Map\n\nRoot로부터의 거리(반음 개수)입니다.\n\n* **0:** P1\n* **1:** b2\n* **2:** M2\n* **3:** b3\n* **4:** M3\n* **5:** P4\n* **6:** b5 / #4\n* **7:** P5\n* **8:** b6 / #5\n* **9:** M6 / bb7\n* **10:** b7\n* **11:** M7\n* **12:** P8",
+        'Chord tones': "### Essential Chord Formulas\n\n* **Major 7:** 1 - 3 - 5 - 7\n* **Dominant 7:** 1 - 3 - 5 - b7\n* **Minor 7:** 1 - b3 - 5 - b7\n* **m7(b5):** 1 - b3 - b5 - b7 (Half-diminished)\n* **Diminished 7:** 1 - b3 - b5 - bb7 (=6)\n* **Min(maj7):** 1 - b3 - 5 - 7",
+        'Key signatures': "### Order of Sharps & Flats\n\n**Sharps (#):** F - C - G - D - A - E - B (파도솔레라미시)\n-> 마지막 샵 바로 위 음이 으뜸음(Do)\n\n**Flats (b):** B - E - A - D - G - C - F (시미라레솔도파)\n-> 뒤에서 두 번째 플랫이 으뜸음(Do)",
+        'Solfege': "### Chromatic Solfege (Fixed Do)\n\n* **Sharps (i):** Di, Ri, Fi, Si, Li\n* **Flats (e/a):** Ra, Me, Se, Le, Te\n\n이동도법(Movable Do)에서도 이 발음 규칙은 동일하게 적용됩니다."
+    },
+    'Intervals': {
+        'Alternative': "### Interval Inversions (음정의 전위)\n\n음정을 뒤집으면 성질과 숫자가 변합니다. (합이 9)\n\n* **Major (장) ↔ Minor (단)**\n* **Augmented (증) ↔ Diminished (감)**\n* **Perfect (완전) ↔ Perfect (완전)**\n\n* **2도 ↔ 7도**\n* **3도 ↔ 6도**\n* **4도 ↔ 5도**",
+        'Tracking': "### Interval Tracking\n\n특정 음에서 음정만큼 위/아래로 이동한 음을 찾는 훈련입니다.\n\n**Tip:** \n1. 먼저 알파벳(도수)을 건너뜁니다. (C에서 3도 위 -> E)\n2. 그 다음 임시표로 거리를 맞춥니다. (C에서 장3도 -> E, 단3도 -> Eb)"
+    },
+    'Chord Forms': {
+        'Relationships': "### Related Chords\n\n코드는 유기적으로 연결되어 있습니다.\n\n* **Cm7 -> C6:** b7(Bb)을 6(A)로 내림.\n* **Cm7 -> Cm7b5:** 5(G)를 b5(Gb)로 내림.\n* **Cmaj7 -> C7:** 7(B)을 b7(Bb)로 내림.\n* **Cdim7 -> C7(b9):** Root를 반음 내리면 그 키의 V7(b9)이 됨.",
+        'Extract (Degree)': "### Chord Extraction (Upper Structure)\n\n복잡한 텐션 코드에서 기본적인 7화음을 찾아내는 기술입니다.\n\n* **Cmaj9 (C E G B D)** -> 3음(E)부터 보면 **Em7 (E G B D)**\n* **C13 (C E G Bb D A)** -> b7음(Bb)부터 보면 **Bbmaj7#5** 형태 등\n\n이것은 솔로 연주나 보이싱을 잡을 때 매우 유용합니다."
+    },
+    'Cycle of 5th': {
+        'P5 down': "### Cycle of Fifths (왼쪽 방향)\n\n**C - F - Bb - Eb - Ab - Db - Gb (F#) - B - E - A - D - G**\n\n* 4도 상행 또는 5도 하행 진행입니다.\n* 2-5-1 진행의 Root 움직임과 같습니다. (Dm7 - G7 - Cmaj7)\n* Flat(b)이 하나씩 늘어나는 순서입니다.",
+        '2-5-1': "### II-V-I Progression\n\n재즈의 가장 기초가 되는 진행입니다.\nTarget Note(1도)를 기준으로:\n\n* **II:** 온음 위 (W)\n* **V:** 완전5도 위 (P5) 또는 완전4도 아래"
+    },
+    'Tritones': {
+        'Pitch': "### Tritone (증4도/감5도)\n\n온음 3개 간격(3 Whole Steps)이라 Tritone이라 부릅니다.\n불안정한 소리가 나며, 해결하려는 성질이 강합니다.\n\n* C - F#\n* F - B\n* Bb - E\n* Eb - A",
+        'Dom7': "### Dominant 7 & Tritone\n\nDom7 코드의 핵심은 3음과 b7음 사이의 Tritone입니다.\n예: **G7 (G B D F)** -> B와 F가 Tritone.\n\n이 Tritone이 안쪽으로 해결되면(C, E) -> **Cmaj7**\n바깥쪽으로 벌어지며 해결되면 -> **Gbmaj7** (Tritone Sub)"
+    },
+    'Modes': {
+        'Alterations': "### Mode Colors (특징음)\n\n각 모드의 유니크한 느낌을 주는 음입니다.\n\n* **Ionian:** Natural (Avoid 11)\n* **Dorian:** Natural 6 (Minor key지만 6도가 장6도)\n* **Phrygian:** b2 (스페인/플라멩코 느낌)\n* **Lydian:** #4 (신비로운 느낌)\n* **Mixolydian:** b7 (블루지한 느낌)\n* **Aeolian:** b6 (슬픈 단조)\n* **Locrian:** b2, b5 (매우 불안정)",
+        'Tensions': "### Available Tensions\n\n반음 부딪힘(b9)을 피하는 것이 원칙입니다.\n\n* **Ionian:** 9, 13\n* **Dorian:** 9, 11\n* **Phrygian:** 11, b13\n* **Lydian:** 9, #11, 13 (모든 텐션 가능)\n* **Mixolydian:** 9, 13\n* **Aeolian:** 9, 11\n* **Locrian:** 11, b13"
+    },
+    'Minor': {
+        'Chords': "### Minor Scale Harmony\n\n* **Natural Minor:** Im7 - IIm7b5 - bIIImaj7 - IVm7 - Vm7 - bVImaj7 - bVII7\n* **Harmonic Minor:** ImM7 ... V7(b9,b13) ... VIIdim7\n* **Melodic Minor:** ImM7 - IIm7 - bIIImaj7#5 - IV7 - V7 - VIm7b5 - VIIm7b5",
+        'Tensions': "### Minor Key Tensions\n\n마이너 키에서는 해결감이 강한 **V7 (Harmonic Minor 유래)**을 주로 사용하므로, b9, b13 같은 Altered Tension이 자연스럽게 나옵니다."
+    },
+    'Mastery': {
+        'Functions': "### Diatonic Functions\n\n* **Tonic (T):** 안정. (Imaj7, IIIm7, VIm7)\n* **Sub-Dominant (SD):** 약간 불안정, 이동. (IVmaj7, IIm7)\n* **Dominant (D):** 매우 불안정, 해결 욕구. (V7, VIIdim7)\n\n* **SDm (Sub-Dominant Minor):** 마이너 키의 감성. (IVm7, bVImaj7, bIImaj7)",
+        'Avail Scales': "### Chord Scale Theory\n\n코드의 기능에 따라 사용할 수 있는 스케일이 달라집니다.\n\n* **Imaj7:** Ionian, Lydian\n* **Im7:** Dorian, Aeolian, Phrygian\n* **V7:** Mixolydian, Altered, Lydian b7, HMP5\n* **m7b5:** Locrian, Locrian #2"
+    }
+}
+
 DEFAULT_THEORY = "### Practice Makes Perfect!\n\nNo specific theory content is available for this section yet.\nIf you are **Oh Seung-yeol**, you can edit this text."
 
 # ==========================================
@@ -146,13 +189,15 @@ class StatManager:
         except: self.leaderboard = {}
 
     def get_theory(self, category, subcategory):
-        if not self.connected: return DEFAULT_THEORY
+        if not self.connected: 
+            return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
         try:
             records = self.ws_theory.get_all_records()
             for r in records:
                 if r['category'] == category and r['subcategory'] == subcategory:
                     return r['content']
-            return DEFAULT_THEORY
+            # DB에 없으면 코드상에 있는 초기 데이터를 반환
+            return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
         except: return DEFAULT_THEORY
 
     def save_theory(self, category, subcategory, content):
@@ -475,6 +520,7 @@ cookie_manager = stx.CookieManager()
 if 'logged_in_user' not in st.session_state: st.session_state.logged_in_user = None
 if 'page' not in st.session_state: st.session_state.page = 'login'
 if 'user_input_buffer' not in st.session_state: st.session_state.user_input_buffer = ""
+if 'edit_mode' not in st.session_state: st.session_state.edit_mode = False
 
 if st.session_state.logged_in_user is None:
     user_cookie = cookie_manager.get(cookie="berklee_user")
@@ -517,7 +563,7 @@ if not st.session_state.logged_in_user:
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
     
-    # [OWNER CHECK CHANGED]
+    # [OWNER CHECK UPDATED: 오승열]
     if st.session_state.logged_in_user == '오승열':
         st.caption("👑 Owner Mode Active")
 
@@ -527,7 +573,7 @@ with st.sidebar:
         cookie_manager.delete("berklee_user") 
         st.rerun()
     st.markdown("---")
-    menu = st.radio("Menu", ["Home", "Statistics", "Leaderboard", "Theory", "Credits"])
+    menu = st.radio("Menu", ["🏠 Home", "📊 Statistics", "🏆 Leaderboard", "📚 Theory", "ℹ️ Credits"])
 
 if 'quiz_state' not in st.session_state:
     st.session_state.quiz_state = {
@@ -610,8 +656,8 @@ def finish_quiz():
     st.rerun()
 
 # --- Pages ---
-if st.session_state.page == 'home' or menu != 'Home':
-    if menu == "Home":
+if st.session_state.page == 'home' or "Home" in menu:
+    if "Home" in menu:
         st.header("Select Category")
         cat_names = list(CATEGORY_INFO.keys())
         sel_cat = st.selectbox("Category", cat_names)
@@ -628,7 +674,7 @@ if st.session_state.page == 'home' or menu != 'Home':
             with m3:
                 st.write("60 Seconds."); 
                 if st.button("Start Speed Run"): start_quiz(sel_cat, sel_sub, 'speed', 60)
-    elif menu == "Statistics":
+    elif "Statistics" in menu:
         st.header("Statistics")
         t1, t2 = st.tabs(["Cumulative", "Trend"])
         with t1:
@@ -650,7 +696,7 @@ if st.session_state.page == 'home' or menu != 'Home':
                 d = st.session_state.stat_mgr.get_trend_data(t_cat, t_sub, "weekly") # Default weekly
                 if d: st.line_chart({x[0]: x[1] for x in d})
                 else: st.warning("No Data")
-    elif menu == "Leaderboard":
+    elif "Leaderboard" in menu:
         st.header("🏆 Hall of Fame")
         l_cat = st.selectbox("Cat", list(CATEGORY_INFO.keys()))
         l_sub = st.selectbox("Sub", CATEGORY_INFO[l_cat])
@@ -667,28 +713,49 @@ if st.session_state.page == 'home' or menu != 'Home':
             for i, r in enumerate(d): st.write(f"**{i+1}. {r.get('username','?')}**: {r['solved']} ({r['rate']:.1f}%)")
     
     # --- THEORY PAGE (CMS) ---
-    elif menu == "Theory":
+    elif "Theory" in menu:
         st.header("📚 Music Theory")
-        t_cat = st.selectbox("Category", list(CATEGORY_INFO.keys()))
-        t_sub = st.selectbox("Subcategory", CATEGORY_INFO[t_cat])
         
+        # OWNER EDIT BUTTON LAYOUT
+        col1, col2 = st.columns([8, 2])
+        t_cat = col1.selectbox("Category", list(CATEGORY_INFO.keys()))
+        t_sub = col1.selectbox("Subcategory", CATEGORY_INFO[t_cat])
+        
+        # Only show Edit button to '오승열'
+        if st.session_state.logged_in_user == '오승열':
+            if not st.session_state.edit_mode:
+                if col2.button("✏️ Edit"):
+                    st.session_state.edit_mode = True
+                    st.rerun()
+
         st.markdown("---")
+        
+        # Load Content
         current_content = st.session_state.stat_mgr.get_theory(t_cat, t_sub)
         
-        # [OWNER CHECK CHANGED]
-        if st.session_state.logged_in_user == '오승열':
-            st.warning("🛠️ Owner Edit Mode")
-            new_content = st.text_area("Edit Content (Markdown Supported)", value=current_content, height=300)
-            if st.button("💾 Save to Cloud"):
-                if st.session_state.stat_mgr.save_theory(t_cat, t_sub, new_content):
-                    st.success("Updated successfully!")
-                    time.sleep(1)
+        # EDIT MODE
+        if st.session_state.edit_mode and st.session_state.logged_in_user == '오승열':
+            st.warning("🛠️ Editing Mode")
+            new_content = st.text_area("Markdown Content", value=current_content, height=400)
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("💾 Save"):
+                    if st.session_state.stat_mgr.save_theory(t_cat, t_sub, new_content):
+                        st.success("Saved!")
+                        st.session_state.edit_mode = False
+                        time.sleep(0.5)
+                        st.rerun()
+                    else: st.error("Error saving.")
+            with c2:
+                if st.button("❌ Cancel"):
+                    st.session_state.edit_mode = False
                     st.rerun()
-                else: st.error("Failed to save.")
         else:
-            st.markdown(current_content)
+            # VIEW MODE (Everyone)
+            st.markdown(current_content, unsafe_allow_html=True) # Allow HTML for image alignment
 
-    elif menu == "Credits":
+    elif "Credits" in menu:
         st.header("Credits"); st.write("Created by: Oh Seung-yeol")
 
 if st.session_state.page == 'quiz':
@@ -731,4 +798,3 @@ if st.session_state.page == 'result':
         with st.expander(f"{i} {r['q']}"):
             st.write(f"Your: {r['u']}"); st.write(f"Ans: {r['a']}")
     if st.button("Home"): st.session_state.page = 'home'; st.rerun()
-    #
