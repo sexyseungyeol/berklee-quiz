@@ -44,46 +44,45 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
-# --- THEORY DATA (ENGLISH) ---
 THEORY_DATA = {
     'Enharmonics': {
-        'Degrees': "### Enharmonic Degrees\n\nNotes that sound the same but have different names depending on the context.\n\n| Original | Enharmonic | Note (C Key) |\n| :--- | :--- | :--- |\n| **#I** | **bII** | C# = Db |\n| **#II** | **bIII** | D# = Eb |\n| **bIV** | **III** | Fb = E |\n| **#IV** | **bV** | F# = Gb |\n| **#V** | **bVI** | G# = Ab |\n| **#VI** | **bVII** | A# = Bb |\n| **bI** | **VII** | Cb = B |\n\n**Tip:** Think 'Flat = Next Degree', 'Sharp = Same Degree'.",
-        'Number': "### Enharmonic Interval Numbers\n\nInterval numbers also have enharmonic equivalents.\n\n* **Aug 1 (#1) ↔ Min 2 (b2)**\n* **Aug 2 (#2) ↔ Min 3 (b3)**\n* **Aug 4 (#4) ↔ Dim 5 (b5)**\n* **Aug 5 (#5) ↔ Min 6 (b6)**\n* **Dim 7 (bb7) ↔ Maj 6 (6)**\n\n**Note:** Quickly converting `bb7` to `6` (Major 6th) is crucial for Diminished 7th chords.",
-        'Interval': "### Natural Intervals\n\nDistance between notes without any accidentals.\n\n* **m2 (Minor 2nd):** 1 semitone (E-F, B-C)\n* **M2 (Major 2nd):** 2 semitones\n* **m3 (Minor 3rd):** 3 semitones\n* **M3 (Major 3rd):** 4 semitones\n* **P4 (Perfect 4th):** 5 semitones\n* **Tritone:** 6 semitones (Aug4 / Dim5)\n* **P5 (Perfect 5th):** 7 semitones"
+        'Degrees': "### Enharmonic Degrees\n\nNotes that sound the same but have different names.\n\n| Original | Enharmonic | Note (C Key) |\n| :--- | :--- | :--- |\n| **#I** | **bII** | C# = Db |\n| **#II** | **bIII** | D# = Eb |\n| **bIV** | **III** | Fb = E |\n| **#IV** | **bV** | F# = Gb |\n| **#V** | **bVI** | G# = Ab |\n| **#VI** | **bVII** | A# = Bb |\n| **bI** | **VII** | Cb = B |\n\n**Tip:** Think 'Flat = Next Degree', 'Sharp = Same Degree'.",
+        'Number': "### Enharmonic Intervals\n\n* **Aug 1 (#1) ↔ Min 2 (b2)**\n* **Aug 2 (#2) ↔ Min 3 (b3)**\n* **Aug 4 (#4) ↔ Dim 5 (b5)**\n* **Aug 5 (#5) ↔ Min 6 (b6)**\n* **Dim 7 (bb7) ↔ Maj 6 (6)**",
+        'Interval': "### Natural Intervals\n\n* **m2 (Minor 2nd):** 1 semitone\n* **M2 (Major 2nd):** 2 semitones\n* **m3 (Minor 3rd):** 3 semitones\n* **M3 (Major 3rd):** 4 semitones\n* **P4 (Perfect 4th):** 5 semitones\n* **Tritone:** 6 semitones\n* **P5 (Perfect 5th):** 7 semitones"
     },
     'Warming up': {
-        'Counting semitones': "### Semitones Map\n\nDistance from the Root in semitones.\n\n* **0:** P1\n* **1:** b2\n* **2:** M2\n* **3:** b3\n* **4:** M3\n* **5:** P4\n* **6:** b5 / #4\n* **7:** P5\n* **8:** b6 / #5\n* **9:** M6 / bb7\n* **10:** b7\n* **11:** M7\n* **12:** P8",
-        'Chord tones': "### Essential Chord Formulas\n\n* **Major 7:** 1 - 3 - 5 - 7\n* **Dominant 7:** 1 - 3 - 5 - b7\n* **Minor 7:** 1 - b3 - 5 - b7\n* **m7(b5):** 1 - b3 - b5 - b7 (Half-diminished)\n* **Diminished 7:** 1 - b3 - b5 - bb7 (=6)\n* **Min(maj7):** 1 - b3 - 5 - 7",
-        'Key signatures': "### Order of Sharps & Flats\n\n**Sharps (#):** F - C - G - D - A - E - B\n* The Key is one semitone up from the last Sharp.\n\n**Flats (b):** B - E - A - D - G - C - F\n* The Key is the second to last Flat.",
-        'Solfege': "### Chromatic Solfege (Fixed Do)\n\n* **Sharps (i sound):** Di, Ri, Fi, Si, Li\n* **Flats (e/a sound):** Ra, Me, Se, Le, Te"
+        'Counting semitones': "### Semitones Map\n\n* **0:** P1\n* **1:** b2\n* **2:** M2\n* **3:** b3\n* **4:** M3\n* **5:** P4\n* **6:** b5 / #4\n* **7:** P5\n* **8:** b6 / #5\n* **9:** M6 / bb7\n* **10:** b7\n* **11:** M7\n* **12:** P8",
+        'Chord tones': "### Chord Formulas\n\n* **Maj7:** 1 - 3 - 5 - 7\n* **Dom7:** 1 - 3 - 5 - b7\n* **m7:** 1 - b3 - 5 - b7\n* **m7b5:** 1 - b3 - b5 - b7\n* **dim7:** 1 - b3 - b5 - bb7(=6)\n* **m(maj7):** 1 - b3 - 5 - 7",
+        'Key signatures': "### Key Signatures\n\n**Sharps:** F C G D A E B\n**Flats:** B E A D G C F",
+        'Solfege': "### Chromatic Solfege\n\n* **Sharps:** Di, Ri, Fi, Si, Li\n* **Flats:** Ra, Me, Se, Le, Te"
     },
     'Intervals': {
-        'Alternative': "### Interval Inversions\n\nWhen inverted, the quality and number change (Sum = 9).\n\n* **Major ↔ Minor**\n* **Augmented ↔ Diminished**\n* **Perfect ↔ Perfect**\n\n* **2nd ↔ 7th**\n* **3rd ↔ 6th**\n* **4th ↔ 5th**",
-        'Tracking': "### Interval Tracking\n\nFind the target note by calculating the distance.\n\n**Tip:** \n1. Count the alphabet letters first (e.g., C to E is a 3rd).\n2. Adjust with accidentals to match the quality (e.g., Major 3rd vs Minor 3rd)."
+        'Alternative': "### Inversions\n\n* **Major ↔ Minor**\n* **Aug ↔ Dim**\n* **Perfect ↔ Perfect**\n* **2nd ↔ 7th**\n* **3rd ↔ 6th**\n* **4th ↔ 5th**",
+        'Tracking': "### Interval Tracking\n\n1. Count letters (C to E is a 3rd).\n2. Check semitones."
     },
     'Chord Forms': {
-        'Relationships': "### Related Chords\n\nChords are connected by changing one note.\n\n* **Cm7 -> C6:** Lower b7(Bb) to 6(A).\n* **Cm7 -> Cm7b5:** Lower 5(G) to b5(Gb).\n* **Cmaj7 -> C7:** Lower 7(B) to b7(Bb).\n* **Cdim7 -> C7(b9):** Lowering any note of a dim7 chord by a semitone creates a Dom7(b9).",
-        'Extract (Degree)': "### Chord Extraction (Upper Structure)\n\nFinding simple triads or 7th chords within complex extensions.\n\n* **Cmaj9 (C E G B D)** -> From the 3rd(E), it's **Em7 (E G B D)**.\n* **C13 (C E G Bb D A)** -> From the b7(Bb), it looks like **Bbmaj7#5**.\n\nUseful for improvisation and voicing."
+        'Relationships': "### Related Chords\n\n* **Cm7 -> C6:** Lower b7 to 6.\n* **Cm7 -> Cm7b5:** Lower 5 to b5.\n* **Cmaj7 -> C7:** Lower 7 to b7.\n* **Cdim7 -> C7(b9):** Lower any note by 1 semitone.",
+        'Extract (Degree)': "### Upper Structures\n\n* **Cmaj9** (3rd to 9th) = **Em7**\n* **C13** (b7 to 13) = **Bbmaj7#5**"
     },
     'Cycle of 5th': {
-        'P5 down': "### Cycle of Fifths (Counter-Clockwise)\n\n**C - F - Bb - Eb - Ab - Db - Gb (F#) - B - E - A - D - G**\n\n* Moving down by Perfect 5th (or up by Perfect 4th).\n* Same root movement as II-V-I (Dm7 - G7 - Cmaj7).\n* Adds one Flat (b) each step.",
-        '2-5-1': "### II-V-I Progression\n\nThe most common progression in Jazz.\nFrom the Target Note (I):\n\n* **II:** Whole step up.\n* **V:** Perfect 5th up (or Perfect 4th down)."
+        'P5 down': "### Cycle of Fifths\n\n**C - F - Bb - Eb - Ab - Db - Gb - B - E - A - D - G**\n\nAdds one Flat (b) each step.",
+        '2-5-1': "### II-V-I\n\nFrom Target (I):\n* **II:** Whole step up.\n* **V:** Perfect 5th up."
     },
     'Tritones': {
-        'Pitch': "### Tritone\n\nInterval of 3 Whole Steps (Aug 4 or Dim 5).\nIt creates tension that wants to resolve.\n\n* C - F#\n* F - B\n* Bb - E\n* Eb - A",
-        'Dom7': "### Dominant 7 & Tritone\n\nThe core of a Dom7 chord is the Tritone between the 3rd and b7.\nExample: **G7 (G B D F)** -> B and F are the Tritone.\n\n* Resolving inwards (C, E) -> **Cmaj7**\n* Resolving outwards -> **Gbmaj7** (Tritone Substitution)"
+        'Pitch': "### Tritone\n\nInterval of 3 Whole Steps.\n* C - F#\n* F - B\n* Bb - E\n* Eb - A",
+        'Dom7': "### Dom7 & Tritone\n\nTritone is between 3rd and b7.\n* Inwards resolution -> **Imaj7**\n* Outwards resolution -> **Gbmaj7** (Tritone Sub)"
     },
     'Modes': {
-        'Alterations': "### Mode Colors (Characteristic Notes)\n\nNotes that define the sound of the mode.\n\n* **Ionian:** Natural (Avoid 11)\n* **Dorian:** Natural 6 (Major 6th in a Minor scale)\n* **Phrygian:** b2 (Spanish/Flamenco sound)\n* **Lydian:** #4 (Mysterious/Bright)\n* **Mixolydian:** b7 (Bluesy)\n* **Aeolian:** b6 (Sad/Natural Minor)\n* **Locrian:** b2, b5 (Unstable)",
-        'Tensions': "### Available Tensions\n\nGenerally, avoid tensions that create a b9 interval with chord tones.\n\n* **Ionian:** 9, 13\n* **Dorian:** 9, 11\n* **Phrygian:** 11, b13\n* **Lydian:** 9, #11, 13 (All available)\n* **Mixolydian:** 9, 13\n* **Aeolian:** 9, 11\n* **Locrian:** 11, b13"
+        'Alterations': "### Mode Colors\n\n* **Ionian:** Natural\n* **Dorian:** Natural 6\n* **Phrygian:** b2\n* **Lydian:** #4\n* **Mixolydian:** b7\n* **Aeolian:** b6\n* **Locrian:** b2, b5",
+        'Tensions': "### Tensions\n\nAvoid b9 intervals with chord tones.\n* **Ionian:** 9, 13\n* **Dorian:** 9, 11\n* **Phrygian:** 11, b13\n* **Lydian:** 9, #11, 13\n* **Mixolydian:** 9, 13\n* **Aeolian:** 9, 11\n* **Locrian:** 11, b13"
     },
     'Minor': {
-        'Chords': "### Minor Scale Harmony\n\n* **Natural Minor:** Im7 - IIm7b5 - bIIImaj7 - IVm7 - Vm7 - bVImaj7 - bVII7\n* **Harmonic Minor:** ImM7 ... V7(b9,b13) ... VIIdim7\n* **Melodic Minor:** ImM7 - IIm7 - bIIImaj7#5 - IV7 - V7 - VIm7b5 - VIIm7b5",
-        'Tensions': "### Minor Key Tensions\n\nIn Minor keys, **V7 (from Harmonic Minor)** is often used, introducing **b9 and b13** tensions naturally."
+        'Chords': "### Minor Harmony\n\n* **Natural:** Im7, IIm7b5, bIIImaj7...\n* **Harmonic:** V7(b9,b13), VIIdim7\n* **Melodic:** ImM7, IV7, V7",
+        'Tensions': "### Minor Tensions\n\n**V7** in minor keys uses **b9, b13**."
     },
     'Mastery': {
-        'Functions': "### Diatonic Functions\n\n* **Tonic (T):** Stable. (Imaj7, IIIm7, VIm7)\n* **Sub-Dominant (SD):** Moving. (IVmaj7, IIm7)\n* **Dominant (D):** Unstable, wants resolution. (V7, VIIdim7)\n\n* **SDm (Sub-Dominant Minor):** Minor key color. (IVm7, bVImaj7, bIImaj7)",
-        'Avail Scales': "### Chord Scale Theory\n\nScales match the function of the chord.\n\n* **Imaj7:** Ionian, Lydian\n* **Im7:** Dorian, Aeolian, Phrygian\n* **V7:** Mixolydian, Altered, Lydian b7, HMP5\n* **m7b5:** Locrian, Locrian #2"
+        'Functions': "### Functions\n\n* **Tonic:** Imaj7, IIIm7, VIm7\n* **Sub-Dom:** IVmaj7, IIm7\n* **Dominant:** V7, VIIdim7",
+        'Avail Scales': "### Chord Scales\n\n* **Imaj7:** Ionian, Lydian\n* **Im7:** Dorian, Aeolian\n* **V7:** Mixolydian, Altered\n* **m7b5:** Locrian"
     }
 }
 
@@ -195,7 +194,7 @@ class StatManager:
             records = self.ws_theory.get_all_records()
             for r in records:
                 if r['category'] == category and r['subcategory'] == subcategory:
-                    # [Safety] If DB content is empty, force fallback to Code Data
+                    # [Safety Fix] Ignore empty strings in DB, use Code Data instead
                     if str(r['content']).strip(): 
                         return r['content']
             return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
@@ -653,14 +652,26 @@ def finish_quiz():
     st.session_state.page = 'result'
     st.rerun()
 
-# --- PAGE RENDERING (FIXED LOGIC) ---
+# --- PAGE RENDERING ---
 
 # 1. REAL HOME PAGE
 if menu == "🏠 Home":
-    col1, col2 = st.columns([1,2])
+    col1, col2 = st.columns([1, 2])
     with col1:
-        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png", width=200)
+        # [IMAGE LOGIC] Checks for local file, else falls back to URL (white bg)
+        if os.path.exists("logo.png"):
+            st.image("logo.png", width=200)
+        else:
+            st.markdown(
+                """
+                <div style="background-color: white; padding: 10px; border-radius: 10px; width: fit-content;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png" width="150">
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
     
+    # [LEFT ALIGNED TEXT]
     st.markdown("""
     <div style='text-align: left;'>
         <h1>Road to Berklee</h1>
@@ -672,7 +683,6 @@ if menu == "🏠 Home":
 
 # 2. QUIZ SELECTION
 elif menu == "📝 Start Quiz":
-    # If we are inside a quiz session, show the quiz UI
     if st.session_state.page == 'quiz':
         qs = st.session_state.quiz_state
         if qs['mode'] == 'speed':
@@ -715,7 +725,6 @@ elif menu == "📝 Start Quiz":
         if st.button("Home"): st.session_state.page = 'home'; st.rerun()
 
     else:
-        # Default Selection Screen
         st.header("📝 Select Category") 
         cat_names = list(CATEGORY_INFO.keys())
         sel_cat = st.selectbox("Category", cat_names)
