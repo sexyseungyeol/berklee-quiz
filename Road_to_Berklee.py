@@ -4,7 +4,7 @@ import time
 import json
 import os
 import datetime
-from datetime import timedelta  # <--- 이 줄이 꼭 있어야 합니다!
+from datetime import timedelta
 import hashlib
 import gspread
 
@@ -43,22 +43,53 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
+# --- Theory Data (New Feature) ---
+THEORY_DATA = {
+    'Enharmonics': {
+        'Degrees': "### Enharmonic Degrees\n\n같은 음이지만 이름이 다른 도수(Degree)입니다.\n\n* **#I = bII** (예: C# = Db)\n* **#II = bIII** (예: D# = Eb)\n* **#IV = bV** (예: F# = Gb)\n* **#V = bVI** (예: G# = Ab)\n* **#VI = bVII** (예: A# = Bb)\n* **bIV = III** (예: Fb = E)",
+        'Number': "### Enharmonic Numbers\n\n음정 숫자(Interval Number)의 이명동음 관계입니다.\n\n* **Aug 1 (#1) = Minor 2 (b2)**\n* **Aug 2 (#2) = Minor 3 (b3)**\n* **Aug 4 (#4) = Dim 5 (b5)** (Tritone)\n* **Aug 5 (#5) = Minor 6 (b6)**\n* **Dim 7 (bb7) = Major 6 (6)**",
+        'Interval': "### Natural Interval Forms\n\n변화표가 없는 기본적인 음정 관계입니다.\n\n* **P1 (완전1도):** 0 semitones\n* **m2 (단2도):** 1 semitone\n* **M2 (장2도):** 2 semitones\n* **m3 (단3도):** 3 semitones\n* **M3 (장3도):** 4 semitones\n* **P4 (완전4도):** 5 semitones\n* **Tritone:** 6 semitones\n* **P5 (완전5도):** 7 semitones"
+    },
+    'Warming up': {
+        'Counting semitones': "### Semitones Distance\n\n기준음(Root)으로부터의 반음 개수입니다.\n\n* **1 (b2):** 1개\n* **2 (2):** 2개\n* **3 (b3):** 3개\n* **4 (3):** 4개\n* **5 (4):** 5개\n* **6 (b5):** 6개\n* **7 (5):** 7개\n* **8 (b6):** 8개\n* **9 (6):** 9개\n* **10 (b7):** 10개\n* **11 (7):** 11개",
+        'Chord tones': "### Chord Formulas\n\n코드를 구성하는 도수 공식입니다.\n\n* **Major 7:** 1, 3, 5, 7\n* **Dominant 7:** 1, 3, 5, b7\n* **Minor 7:** 1, b3, 5, b7\n* **m7(b5):** 1, b3, b5, b7\n* **Diminished 7:** 1, b3, b5, bb7 (6)\n* **Augmented:** 1, 3, #5",
+        'Key signatures': "### Key Signatures (조표)\n\n**[Sharps #]** 파 - 도 - 솔 - 레 - 라 - 미 - 시\n**[Flats b]** 시 - 미 - 라 - 레 - 솔 - 도 - 파\n\n* **C Major:** 0\n* **G / F:** 1\n* **D / Bb:** 2\n* **A / Eb:** 3\n* **E / Ab:** 4\n* **B / Db:** 5\n* **F# / Gb:** 6",
+        'Solfege': "### Fixed Do Solfege\n\n* **I:** Do\n* **II:** Re\n* **III:** Mi\n* **IV:** Fa\n* **V:** Sol\n* **VI:** La\n* **VII:** Ti\n* **bII:** Ra, **bIII:** Me, **bV:** Se..."
+    },
+    'Modes': {
+        'Alterations': "### Mode Character Notes\n\n각 모드를 결정짓는 특징음(Alterations)입니다.\n\n* **Ionian:** -\n* **Dorian:** b3, b7 (Natural Minor에서 6가 제자리)\n* **Phrygian:** b2, b3, b6, b7\n* **Lydian:** #4\n* **Mixolydian:** b7\n* **Aeolian:** b3, b6, b7\n* **Locrian:** b2, b3, b5, b6, b7",
+        'Tensions': "### Available Tensions\n\n* **Ionian:** 9, 13 (11 is Avoid)\n* **Dorian:** 9, 11 (13 is Avoid usually)\n* **Phrygian:** 11, b13\n* **Lydian:** 9, #11, 13\n* **Mixolydian:** 9, 13 (11 is Avoid)\n* **Aeolian:** 9, 11\n* **Locrian:** 11, b13"
+    },
+    'Chord Forms': {
+        'Relationships': "### Chord Conversion\n\n* **m7 -> 6:** 7음(b7)을 반음 내림 -> 6\n* **m7 -> m7b5:** 5음(5)을 반음 내림 -> b5\n* **maj7 -> 7:** 7음(7)을 반음 내림 -> b7",
+        'Extract (Degree)': "### Chord extraction\n\n어떤 복잡한 코드 안에는 더 단순한 코드가 숨어 있습니다.\n\n예: **Cmaj9** (C E G B D) -> 3음(E)부터 쌓으면 **Em7** (E G B D)가 됩니다.\n이런 식으로 'Upper Structure'를 찾는 연습입니다."
+    },
+    'Cycle of 5th': {
+        'P5 down': "### Circle of Fifths (Down)\n\n완전 5도 하행 (4도 상행)은 **Flats (b)**가 늘어나는 방향입니다.\n\nC -> F -> Bb -> Eb -> Ab -> Db -> Gb...",
+        'P5 up': "### Circle of Fifths (Up)\n\n완전 5도 상행은 **Sharps (#)**가 늘어나는 방향입니다.\n\nC -> G -> D -> A -> E -> B -> F#..."
+    },
+    'Tritones': {
+        'Pitch': "### Tritone (3 whole steps)\n\n증4도(Aug 4) 또는 감5도(Dim 5)입니다. 옥타브를 정확히 절반으로 나눕니다.\n\n* C - F#\n* F - B\n* G - Db\n* **Tritone Substitution:** 도미넌트 7 코드는 Tritone 관계에 있는 다른 도미넌트 7으로 대리 가능합니다. (예: G7 <-> Db7)",
+        'Dom7': "### Dominant 7 Tritone\n\nDom7 코드의 가이드톤(3음, 7음)은 Tritone 관계입니다.\n\n예: **G7** (G **B** D **F**) -> B와 F는 Tritone입니다."
+    }
+}
+# (다른 카테고리는 기본 안내 문구 출력)
+DEFAULT_THEORY = "### Practice Makes Perfect!\n\n이 카테고리는 다양한 조(Key)와 음(Note)에서 즉각적으로 반응하는 연습이 필요합니다. \n\n**Tip:** 머리로 계산하기보다, 건반의 모양이나 악보상의 위치를 이미지로 기억하려고 노력해보세요."
+
 # ==========================================
-# 2. StatManager (User Management System)
+# 2. StatManager
 # ==========================================
 class StatManager:
     def __init__(self, key_file="service_account.json", sheet_name="Berklee_DB"):
         self.connected = False
         self.current_user = None 
-        
         try:
             if "gcp_service_account" in st.secrets:
                 creds_dict = dict(st.secrets["gcp_service_account"])
                 self.gc = gspread.service_account_from_dict(creds_dict)
             elif os.path.exists(key_file):
                 self.gc = gspread.service_account(filename=key_file)
-            else:
-                self.gc = None
+            else: self.gc = None
 
             if self.gc:
                 self.sh = self.gc.open(sheet_name)
@@ -225,81 +256,74 @@ def get_pitch_index(pitch):
 def get_pitch_from_index(idx): return NOTES[idx % 12]
 def get_valid_answers(idx, suffix=""): return [f"{r}{suffix}" for r in get_enharmonic_names(idx)]
 def get_slash_answers(ridx, suf, bidx): return [f"{r}{suf}/{b}" for r in get_enharmonic_names(ridx) for b in get_enharmonic_names(bidx)]
-def normalize_input(text): return set([p.strip().lower() for p in text.replace('/',',').split(',') if p.strip()])
+
+def normalize_input(text):
+    text = text.replace('♭', 'b').replace('♯', '#')
+    return set([p.strip().lower() for p in text.replace('/',',').split(',') if p.strip()])
 
 # --- Virtual Keypad Logic ---
 def get_keypad_keys(cat, sub):
-    """카테고리에 따라 키패드 구성을 반환"""
-    
-    # 1. Degrees (Roman Numerals)
     if (cat == 'Enharmonics' and sub == 'Degrees') or \
        (cat == 'Warming up' and sub == 'Finding degrees') or \
        (cat == 'Locations' and sub == 'Pitch->Deg') or \
        (cat == 'Modes' and sub == 'Alterations') or \
        (cat == 'Mastery' and sub == 'Degrees'):
-       return ['I','II','III','IV','V','VI','VII','b','#']
+       return [['♭', '♯'], ['I','II','III','IV'], ['V','VI','VII']]
 
-    # 2. Intervals & Numbers
     if cat == 'Intervals' or \
        (cat == 'Enharmonics' and sub == 'Interval') or \
        (cat == 'Enharmonics' and sub == 'Number'):
-       return ['m','M','P','1','2','3','4','5','6','7','8','+','-']
+       return [['m','M','P'], ['1','2','3','4'], ['5','6','7','8'], ['+','-']]
     
-    # 3. Scales (Modes)
     if (cat == 'Modes' and sub != 'Chords(Deg)' and sub != 'Chords(Key)') or \
        (cat == 'Mastery' and sub == 'Avail Scales'):
-       return ['Ionian','Dorian','Phrygian','Lydian','Mixolydian','Aeolian','Locrian']
+       return [['Ionian','Dorian'], ['Phrygian','Lydian'], ['Mixolydian','Aeolian'], ['Locrian']]
        
-    # 4. Solfege
     if cat == 'Warming up' and sub == 'Solfege':
-        return ['Do','Re','Mi','Fa','Sol','La','Ti','Di','Ri','Fi','Si','Li','Ra','Me','Se','Le','Te']
+        return [['Do','Re','Mi','Fa'], ['Sol','La','Ti'], ['Di','Ri','Fi','Si','Li'], ['Ra','Me','Se','Le','Te']]
 
-    # 5. Default: Note Names + Accidentals + Chord Qualities
-    # (Covers: Chord Forms, Tritones, Minor, Locations(Deg->Pitch), Mastery(Pitches) etc.)
-    base_keys = ['C','D','E','F','G','A','B','b','#', '/']
-    
-    # Add context specific keys
+    rows = [['♭','♯', '/'], ['C','D','E','F'], ['G','A','B']]
     if cat == 'Chord Forms' or cat == 'Minor' or cat == 'Tritones' or cat == 'Modes':
-        base_keys += ['maj7','m7','7','m7b5','dim7','6','m6','sus4','aug']
-    
-    return base_keys
+        rows.append(['maj7','m7','7','m7b5'])
+        rows.append(['dim7','6','m6','sus4','aug'])
+    return rows
 
 def render_keypad(cat, sub):
-    keys = get_keypad_keys(cat, sub)
+    key_rows = get_keypad_keys(cat, sub)
     
-    # CSS for styling buttons (Optional but good for mobile)
+    # [Updated CSS for Wide Buttons & Minimized Gaps]
     st.markdown("""
         <style>
-        div.stButton > button:first-child {
-            width: 100%;
+        div.stButton > button {
+            width: 100% !important;
             height: 50px;
-            margin: 2px 0px;
+            margin: 0px !important;
+            font-size: 18px;
+        }
+        [data-testid="column"] {
+            padding: 0px 5px !important;
+            min-width: 0 !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
-    # Keypad Grid
-    cols = st.columns(4) # 4 columns grid
-    for i, key in enumerate(keys):
-        if cols[i % 4].button(key, key=f"btn_{key}"):
-            st.session_state.user_input_buffer += key
-            st.rerun()
+    for row_keys in key_rows:
+        cols = st.columns(len(row_keys)) 
+        for i, key in enumerate(row_keys):
+            if cols[i].button(key, key=f"btn_{key}"):
+                st.session_state.user_input_buffer += key
+                st.rerun()
 
     st.markdown("---")
-    # Control Keys
     c1, c2, c3 = st.columns([1, 1, 2])
     with c1:
         if st.button("⬅️ Del"):
-            st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1] # Remove last char
-            st.rerun()
+            st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1]; st.rerun()
     with c2:
         if st.button("❌ Clear"):
-            st.session_state.user_input_buffer = ""
-            st.rerun()
+            st.session_state.user_input_buffer = ""; st.rerun()
     with c3:
-        # Submit Logic moved here
-        if st.button("✅ Submit", type="primary", use_container_width=True):
-            return True # Signal to check answer
+        if st.button("✅ Submit", type="primary", use_container_width=True): return True
     return False
 
 # --- Question Generation (Same) ---
@@ -485,7 +509,7 @@ with st.sidebar:
         st.session_state.page = 'login'
         st.rerun()
     st.markdown("---")
-    menu = st.radio("Menu", ["Home", "Statistics", "Leaderboard", "Credits"])
+    menu = st.radio("Menu", ["Home", "Statistics", "Leaderboard", "Theory", "Credits"]) # Theory Added
 
 if 'quiz_state' not in st.session_state:
     st.session_state.quiz_state = {
@@ -623,6 +647,18 @@ if st.session_state.page == 'home' or menu != 'Home':
             st.subheader("Speed")
             d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('speed', [])
             for i, r in enumerate(d): st.write(f"**{i+1}. {r.get('username','?')}**: {r['solved']} ({r['rate']:.1f}%)")
+    
+    # --- THEORY PAGE (New Feature) ---
+    elif menu == "Theory":
+        st.header("📚 Music Theory")
+        t_cat = st.selectbox("Category", list(CATEGORY_INFO.keys()))
+        t_sub = st.selectbox("Subcategory", CATEGORY_INFO[t_cat])
+        
+        st.markdown("---")
+        # 이론 데이터 가져오기 (없으면 기본 메시지)
+        theory_text = THEORY_DATA.get(t_cat, {}).get(t_sub, DEFAULT_THEORY)
+        st.markdown(theory_text)
+
     elif menu == "Credits":
         st.header("Credits"); st.write("Created by: Oh Seung-yeol")
 
@@ -644,20 +680,14 @@ if st.session_state.page == 'quiz':
             st.error(f"Wrong! ({fb['user_input']})"); st.info(f"Answer: {d}")
         if st.button("Next Question", type="primary"): next_question()
     else:
-        # --- NEW: Virtual Keypad UI ---
-        # Display Current Input Buffer
+        # --- Virtual Keypad UI ---
         st.text_input("Answer Input (Use buttons below)", value=st.session_state.user_input_buffer, disabled=True, key="display_buffer")
-        
-        # Render Keypad
         submitted = render_keypad(qs['cat'], qs['sub'])
-        
-        # Skip & Quit Buttons (Outside Keypad)
         c1, c2 = st.columns(2)
         with c1:
             if st.button("⏩ Skip"): check_answer("skip")
         with c2:
             if st.button("🏠 Quit"): st.session_state.page = 'home'; st.rerun()
-
         if submitted: check_answer(st.session_state.user_input_buffer)
 
 if st.session_state.page == 'result':
