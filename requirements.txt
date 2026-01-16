@@ -3,3 +3,4 @@ gspread
 extra-streamlit-components
 pandas
 matplotlib
+streamlit-components-v1
