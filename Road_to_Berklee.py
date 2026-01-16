@@ -44,7 +44,6 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
-# --- Initial Theory Data (Updated) ---
 THEORY_DATA = {
     'Enharmonics': {
         'Degrees': "### Enharmonic Degrees (이명동음 도수)\n\n같은 음이지만 문맥에 따라 다르게 불리는 도수들입니다.\n\n| Original | Enharmonic | Note (C Key) |\n| :--- | :--- | :--- |\n| **#I** | **bII** | C# = Db |\n| **#II** | **bIII** | D# = Eb |\n| **bIV** | **III** | Fb = E |\n| **#IV** | **bV** | F# = Gb |\n| **#V** | **bVI** | G# = Ab |\n| **#VI** | **bVII** | A# = Bb |\n| **bI** | **VII** | Cb = B |\n\n**Tip:** '플랫이 붙으면 다음 도수', '샵이 붙으면 같은 도수'라고 생각하면 쉽습니다.",
@@ -195,7 +194,9 @@ class StatManager:
             records = self.ws_theory.get_all_records()
             for r in records:
                 if r['category'] == category and r['subcategory'] == subcategory:
-                    return r['content']
+                    # [FIXED LOGIC]: 빈 내용이면 무시하고 기본 데이터 로드
+                    if str(r['content']).strip(): 
+                        return r['content']
             return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
         except: return DEFAULT_THEORY
 
@@ -561,6 +562,8 @@ if not st.session_state.logged_in_user:
 # --- MAIN APP ---
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
+    
+    # [OWNER CHECK: 오승열]
     if st.session_state.logged_in_user == '오승열':
         st.caption("👑 Owner Mode Active")
 
