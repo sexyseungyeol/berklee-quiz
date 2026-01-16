@@ -22,7 +22,6 @@ NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 NATURAL_INTERVAL_DATA = {'P1': ['-2', '+7', 'P8', '+14'], 'm2': ['+1', 'm9', '+8'], 'M2': ['-3', 'M9', '-10'], 'm3': ['+2', 'm10', '+9'], 'M3': ['-4', 'M10', '-11'], 'P4': ['+3', 'P11', '+10'], 'Tritone': ['+11', '-12'], 'P5': ['-6', 'P12', '-13'], 'm6': ['+5', 'm13', '+12'], 'M6': ['-7', 'M13', '-14'], 'm7': ['+6', 'm14', '+13'], 'M7': ['-8', 'M14']}
 DISTANCE_TO_DEGREE = {1:['I'],2:['#I','bII'],3:['II'],4:['#II','bIII'],5:['III'],6:['IV'],7:['#IV','bV'],8:['V'],9:['#V','bVI'],10:['VI'],11:['#VI','bVII'],12:['VII']}
 DEGREE_MAP = {'I':0,'bII':1,'#I':1,'II':2,'bIII':3,'#II':3,'III':4,'IV':5,'#III':5,'bV':6,'#IV':6,'V':7,'bVI':8,'#V':8,'VI':9,'bVII':10,'#VI':10,'VII':11}
-R_CALC_MAP = {'I':0,'P1':0,'V':1,'P5':1,'II':2,'M2':2,'9':2,'VI':3,'M6':3,'13':3,'III':4,'M3':4,'VII':5,'M7':5,'#IV':6,'bV':6,'#11':6,'bII':7,'#I':7,'b9':7,'bVI':8,'#V':8,'b13':8,'bIII':9,'#II':9,'m3':9,'#9':9,'bVII':10,'m7':10,'IV':11,'P4':11,'11':11}
 ENHARMONIC_GROUPS = {0:['C','B#'],1:['Db','C#'],2:['D'],3:['Eb','D#'],4:['E','Fb'],5:['F','E#'],6:['Gb','F#'],7:['G'],8:['Ab','G#'],9:['A'],10:['Bb','A#'],11:['B','Cb']}
 SOLFEGE = {'I':'Do','II':'Re','III':'Mi','IV':'Fa','V':'Sol','VI':'La','VII':'Ti','bII':'Ra','bIII':'Me','bV':'Se','bVI':'Le','bVII':'Te','#I':'Di','#II':'Ri','#IV':'Fi','#V':'Si','#VI':'Li'}
 KEY_SIGS_MAJOR = {'C':'','G':'#','D':'##','A':'###','E':'####','B':'#####','F#':'######','F':'b','Bb':'bb','Eb':'bbb','Ab':'bbbb','Db':'bbbbb','Gb':'bbbbbb'}
@@ -50,7 +49,7 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
-# --- THEORY DATA (Corrected) ---
+# --- THEORY DATA ---
 THEORY_DATA = {
     'Enharmonics': {
         'Degrees': "### Enharmonic Degrees\n\nNotes that share the same pitch but have different names.\n\n| Sharp | Flat | Relation |\n| :--- | :--- | :--- |\n| #I | bII | Root # ↔ Super b |\n| #II | bIII | Super # ↔ Mediant b |\n| #IV | bV | Tritone |",
@@ -180,7 +179,7 @@ class StatManager:
 if 'stat_mgr' not in st.session_state: st.session_state.stat_mgr = StatManager()
 
 # ==========================================
-# 3. GENERATOR & KEYPAD
+# 3. UTILS & GENERATOR & KEYPAD
 # ==========================================
 def get_enharmonic_names(idx): return ENHARMONIC_GROUPS.get(idx % 12, [])
 def get_pitch_index(p):
@@ -195,24 +194,23 @@ def normalize_input(text):
     text = text.replace('♭', 'b').replace('♯', '#')
     return set([p.strip().lower() for p in text.replace('/',',').split(',') if p.strip()])
 
-# [FIXED: Custom Layout for Degrees & Full Width Buttons]
+# [CALLBACK FUNCTIONS]
+def add_input(k): st.session_state.user_input_buffer += k
+def del_input(): st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1]
+def clear_input(): st.session_state.user_input_buffer = ""
+
 def get_keypad_keys(cat, sub):
-    # Special Layout for Degrees: 2 -> 3 -> 4 columns
     if (cat == 'Enharmonics' and sub == 'Degrees') or \
        (cat == 'Warming up' and sub == 'Finding degrees') or \
        (cat == 'Locations' and sub == 'Pitch->Deg') or \
        (cat == 'Modes' and sub == 'Alterations') or \
        (cat == 'Mastery' and sub == 'Degrees'):
-       return [
-           ['♭', '♯'], 
-           ['I','II','III'], 
-           ['IV','V','VI','VII']
-       ]
+       return [['♭', '♯'], ['I','II','III'], ['IV','V','VI','VII']]
     if cat == 'Intervals' or \
        (cat == 'Enharmonics' and sub == 'Natural Form') or \
        (cat == 'Enharmonics' and sub == 'Number'):
        return [['m','M','P'], ['1','2','3','4'], ['5','6','7','8'], ['+','-']]
-    if (cat == 'Modes' and sub not in ['Chords(Deg)', 'Chords(Key)']) or \
+    if (cat == 'Modes' and sub != 'Chords(Deg)' and sub != 'Chords(Key)') or \
        (cat == 'Mastery' and sub == 'Avail Scales'):
        return [['Ionian','Dorian'], ['Phrygian','Lydian'], ['Mixolydian','Aeolian'], ['Locrian']]
     if cat == 'Warming up' and sub == 'Solfege':
@@ -226,16 +224,22 @@ def get_keypad_keys(cat, sub):
 def render_keypad(cat, sub):
     key_rows = get_keypad_keys(cat, sub)
     
+    # [DESIGN FIX: Margin added between buttons to separate rows]
     st.markdown("""
         <style>
-        /* Specific selector for Keypad Buttons */
         div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] .stButton > button {
             width: 100% !important;
             height: 70px !important;
             font-size: 24px !important;
             font-weight: bold !important;
             border-radius: 12px !important;
-            margin: 0px !important;
+            margin-bottom: 8px !important; /* Added gap between rows */
+        }
+        section[data-testid="stSidebar"] .stButton > button {
+            height: auto !important;
+            width: auto !important;
+            font-size: inherit !important;
+            margin-bottom: 0px !important;
         }
         div[data-testid="column"] {
             padding: 2px !important;
@@ -243,24 +247,23 @@ def render_keypad(cat, sub):
         </style>
     """, unsafe_allow_html=True)
     
-    for row in key_rows:
-        cols = st.columns(len(row)) # Create columns based on row length (2, 3, or 4)
-        for i, key in enumerate(row):
-            # use_container_width=True forces button to fill the column
-            if cols[i].button(key, key=f"k_{key}", use_container_width=True):
-                st.session_state.user_input_buffer += key
-                st.rerun()
+    for i, row in enumerate(key_rows):
+        cols = st.columns(len(row))
+        for j, key in enumerate(row):
+            cols[j].button(key, key=f"k_{key}", on_click=add_input, args=(key,), use_container_width=True)
+        
+        # [DESIGN FIX: Extra gap specifically after Accidentals row]
+        if '♭' in row and '♯' in row:
+             st.write("") # Insert small spacer after b/# row
+
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 1, 2])
-    with c1:
-        if st.button("⬅️ Del"): st.session_state.user_input_buffer = st.session_state.user_input_buffer[:-1]; st.rerun()
-    with c2:
-        if st.button("❌ Clear"): st.session_state.user_input_buffer = ""; st.rerun()
-    with c3:
-        if st.button("✅ Submit", type="primary", use_container_width=True): return True
+    c1.button("⬅️ Del", on_click=del_input)
+    c2.button("❌ Clear", on_click=clear_input)
+    if c3.button("✅ Submit", type="primary", use_container_width=True): return True
     return False
 
-# ... (Previous Generator Functions included)
+# --- Question Generation ---
 def generate_question(cat, sub):
     try:
         if cat == 'Enharmonics':
@@ -590,13 +593,16 @@ elif menu == "📝 Start Quiz":
                 st.error(f"Wrong! ({fb['user_input']})"); st.info(f"Answer: {d}")
             if st.button("Next Question", type="primary"): next_question()
         else:
-            st.text_input("Answer Input (Use buttons below)", value=st.session_state.user_input_buffer, disabled=True, key="display_buffer")
+            st.text_input("Answer Input (Use buttons below)", value=st.session_state.user_input_buffer, disabled=True)
+            
             submitted = render_keypad(qs['cat'], qs['sub'])
+            
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("⏩ Skip"): check_answer("skip")
             with c2:
                 if st.button("🏠 Quit"): st.session_state.page = 'home'; st.rerun()
+            
             if submitted: check_answer(st.session_state.user_input_buffer)
 
     elif st.session_state.page == 'result':
