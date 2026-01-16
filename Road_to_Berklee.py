@@ -71,8 +71,6 @@ class StatManager:
             except: self.ws_history = self.sh.add_worksheet(title="History", rows="1000", cols="10")
             try: self.ws_leaderboard = self.sh.worksheet("Leaderboard")
             except: self.ws_leaderboard = self.sh.add_worksheet(title="Leaderboard", rows="1000", cols="10")
-            try: self.ws_theory = self.sh.worksheet("Theory")
-            except: self.ws_theory = self.sh.add_worksheet(title="Theory", rows="200", cols="3")
 
     def hash_password(self, password): return hashlib.sha256(password.encode()).hexdigest()
     def create_user(self, username, password):
@@ -271,7 +269,9 @@ if not st.session_state.logged_in_user:
 
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
-    if st.button("Logout"): st.session_state.logged_in_user = None; cookie_manager.delete("berklee_user"); st.rerun()
+    if st.button("Logout"):
+        st.session_state.logged_in_user = None; cookie_manager.delete("berklee_user"); st.rerun()
+    st.markdown("---")
     menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "🏆 Leaderboard"])
 
 if 'quiz_state' not in st.session_state:
@@ -321,7 +321,12 @@ def move_to_next():
 # --- MAIN PAGE RENDER ---
 if menu == "🏠 Home":
     col1, col2 = st.columns([1, 2])
-    with col1: st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png", width=150)
+    with col1:
+        # [FIXED: 로컬 logo.png 우선 확인 후 온라인 로고 백업]
+        if os.path.exists("logo.png"):
+            st.image("logo.png", width=200)
+        else:
+            st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png", width=150)
     st.markdown("<div style='text-align: left;'><h1>Road to Berklee</h1><h3>Music Theory practicing application</h3><p>Master your intervals, chords, scales, and more.</p></div>", unsafe_allow_html=True)
 
 elif menu == "📝 Start Quiz":
@@ -346,10 +351,10 @@ elif menu == "📝 Start Quiz":
         st.subheader(qs['current_q'][0])
         st.text_input("Answer Input", value=st.session_state.user_input_buffer, disabled=True)
         if render_keypad(qs['cat'], qs['sub']): check_answer()
-        if st.button("🏠 Quit Quiz"): st.session_state.page = 'home'; st.rerun()
+        if st.button("🏠 Quit Quiz"): st.session_state.page = 'home'; st.session_state.quiz_state['active'] = False; st.rerun()
 
     elif st.session_state.page == 'result':
-        qs = st.session_state.quiz_state; st.header("Result")
+        qs = st.session_state.quiz_state; st.header("Quiz Result")
         if not qs['is_retry']: 
             if qs['mode']=='speed': st.metric("Correct", qs['score'])
             else: st.metric("Score", f"{qs['score']}/{qs['limit']}", f"{qs['score']/qs['limit']*100:.1f}%")
@@ -402,3 +407,6 @@ elif menu == "🏆 Leaderboard":
         st.subheader("Speed Run")
         data = sorted([r for r in raw if r['category']==lc and r['subcategory']==ls and r['mode']=='speed'], key=lambda x: (-x['solved'], -x['rate']))
         for i, r in enumerate(data[:5]): st.write(f"{i+1}. {r['username']} - {r['solved']} Q ({r['rate']:.1f}%)")
+
+elif menu == "ℹ️ Credits":
+    st.header("ℹ️ Credits"); st.write("Created by: Oh Seung-yeol. Practice for Berklee College of Music.")
