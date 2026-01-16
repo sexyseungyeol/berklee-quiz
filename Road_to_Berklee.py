@@ -194,7 +194,6 @@ class StatManager:
             records = self.ws_theory.get_all_records()
             for r in records:
                 if r['category'] == category and r['subcategory'] == subcategory:
-                    # [FIXED LOGIC]: 빈 내용이면 무시하고 기본 데이터 로드
                     if str(r['content']).strip(): 
                         return r['content']
             return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
@@ -563,7 +562,6 @@ if not st.session_state.logged_in_user:
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
     
-    # [OWNER CHECK: 오승열]
     if st.session_state.logged_in_user == '오승열':
         st.caption("👑 Owner Mode Active")
 
@@ -658,7 +656,7 @@ def finish_quiz():
 # --- Pages ---
 if st.session_state.page == 'home' or menu == "Home":
     if menu == "Home":
-        st.header("🎹 Select Category") # [EMOJI ADDED]
+        st.header("🎹 Select Category") 
         cat_names = list(CATEGORY_INFO.keys())
         sel_cat = st.selectbox("Category", cat_names)
         if sel_cat:
@@ -675,7 +673,7 @@ if st.session_state.page == 'home' or menu == "Home":
                 st.write("60 Seconds."); 
                 if st.button("Start Speed Run"): start_quiz(sel_cat, sel_sub, 'speed', 60)
     elif menu == "Statistics":
-        st.header("📊 Statistics") # [EMOJI ADDED]
+        st.header("📊 Statistics") 
         t1, t2 = st.tabs(["Cumulative", "Trend"])
         with t1:
             solved, rate = st.session_state.stat_mgr.calculate_stats(st.session_state.stat_mgr.data)
@@ -697,7 +695,7 @@ if st.session_state.page == 'home' or menu == "Home":
                 if d: st.line_chart({x[0]: x[1] for x in d})
                 else: st.warning("No Data")
     elif menu == "Leaderboard":
-        st.header("🏆 Hall of Fame") # [EMOJI ADDED]
+        st.header("🏆 Hall of Fame") 
         l_cat = st.selectbox("Cat", list(CATEGORY_INFO.keys()))
         l_sub = st.selectbox("Sub", CATEGORY_INFO[l_cat])
         c1, c2 = st.columns(2)
@@ -714,7 +712,7 @@ if st.session_state.page == 'home' or menu == "Home":
     
     # --- THEORY PAGE (CMS) ---
     elif menu == "Theory":
-        st.header("📚 Music Theory") # [EMOJI ADDED]
+        st.header("📚 Music Theory") 
         
         col1, col2 = st.columns([8, 2])
         t_cat = col1.selectbox("Category", list(CATEGORY_INFO.keys()))
@@ -733,7 +731,8 @@ if st.session_state.page == 'home' or menu == "Home":
             st.warning("🛠️ Editing Mode")
             new_content = st.text_area("Markdown Content", value=current_content, height=400)
             
-            c1, c2 = st.columns(2)
+            # [NEW: RESET BUTTON ADDED]
+            c1, c2, c3 = st.columns([1,1,2])
             with c1:
                 if st.button("💾 Save"):
                     if st.session_state.stat_mgr.save_theory(t_cat, t_sub, new_content):
@@ -743,6 +742,14 @@ if st.session_state.page == 'home' or menu == "Home":
                         st.rerun()
                     else: st.error("Error saving.")
             with c2:
+                if st.button("🔄 Reset"): # This fixes empty DB issues
+                    default_text = THEORY_DATA.get(t_cat, {}).get(t_sub, DEFAULT_THEORY)
+                    if st.session_state.stat_mgr.save_theory(t_cat, t_sub, default_text):
+                        st.success("Reset to Default!")
+                        st.session_state.edit_mode = False
+                        time.sleep(0.5)
+                        st.rerun()
+            with c3:
                 if st.button("❌ Cancel"):
                     st.session_state.edit_mode = False
                     st.rerun()
@@ -750,7 +757,7 @@ if st.session_state.page == 'home' or menu == "Home":
             st.markdown(current_content, unsafe_allow_html=True)
 
     elif menu == "Credits":
-        st.header("ℹ️ Credits") # [EMOJI ADDED]
+        st.header("ℹ️ Credits")
         st.write("Created by: Oh Seung-yeol")
 
 if st.session_state.page == 'quiz':
