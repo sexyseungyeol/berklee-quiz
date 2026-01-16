@@ -46,30 +46,22 @@ CATEGORY_INFO = {
 }
 
 # ==========================================
-# 2. STAT MANAGER (Enhanced Data range)
+# 2. STAT MANAGER (Week Range Fixed)
 # ==========================================
 class StatManager:
     def __init__(self, key_file="service_account.json", sheet_name="Berklee_DB"):
-        self.connected = False
-        self.current_user = None 
+        self.connected = False; self.current_user = None 
         try:
             if "gcp_service_account" in st.secrets:
                 creds_dict = dict(st.secrets["gcp_service_account"])
                 self.gc = gspread.service_account_from_dict(creds_dict)
-            elif os.path.exists(key_file):
-                self.gc = gspread.service_account(filename=key_file)
+            elif os.path.exists(key_file): self.gc = gspread.service_account(filename=key_file)
             else: self.gc = None
-            if self.gc:
-                self.sh = self.gc.open(sheet_name)
-                self.connected = True
+            if self.gc: self.sh = self.gc.open(sheet_name); self.connected = True
         except: self.connected = False
         if self.connected:
-            try: self.ws_users = self.sh.worksheet("Users")
-            except: self.ws_users = self.sh.add_worksheet(title="Users", rows="100", cols="3")
-            try: self.ws_history = self.sh.worksheet("History")
-            except: self.ws_history = self.sh.add_worksheet(title="History", rows="1000", cols="10")
-            try: self.ws_leaderboard = self.sh.worksheet("Leaderboard")
-            except: self.ws_leaderboard = self.sh.add_worksheet(title="Leaderboard", rows="1000", cols="10")
+            self.ws_users = self.sh.worksheet("Users"); self.ws_history = self.sh.worksheet("History")
+            self.ws_leaderboard = self.sh.worksheet("Leaderboard")
 
     def hash_password(self, password): return hashlib.sha256(password.encode()).hexdigest()
     def login_user(self, username, password):
@@ -82,15 +74,13 @@ class StatManager:
         except: return False
     def auto_login(self, username):
         if not self.connected: return False
-        try:
-            if username in self.ws_users.col_values(1):
-                self.current_user = username; self.load_user_data(); return True
-            return False
-        except: return False
+        if username in self.ws_users.col_values(1):
+            self.current_user = username; self.load_user_data(); return True
+        return False
     def load_user_data(self):
         try:
-            all_hist = self.ws_history.get_all_records()
-            self.data = [r for r in all_hist if str(r['username']) == self.current_user]
+            all_h = self.ws_history.get_all_records()
+            self.data = [r for r in all_h if str(r['username']) == self.current_user]
             self.leaderboard_raw = self.ws_leaderboard.get_all_records()
         except: self.data = []; self.leaderboard_raw = []
 
@@ -112,43 +102,30 @@ class StatManager:
     def calculate_stats(self, data):
         if not data: return 0, 0.0
         correct = sum(1 for r in data if r.get('is_correct', 0) == 1)
-        return len(data), (correct / len(data) * 100 if len(data) > 0 else 0)
-
-    def get_breakdown(self, data):
-        bd = {}
-        for r in data:
-            c, s = r['category'], r['subcategory']
-            if c not in bd: bd[c] = {'total': 0, 'correct': 0, 'subs': {}}
-            if s not in bd[c]['subs']: bd[c]['subs'][s] = {'total': 0, 'correct': 0}
-            bd[c]['total'] += 1; bd[c]['subs'][s]['total'] += 1
-            if r.get('is_correct', 0) == 1: bd[c]['correct'] += 1; bd[c]['subs'][s]['correct'] += 1
-        return bd
+        return len(data), (correct / len(data) * 100)
 
     def get_trend_data(self, category, subcategory, period_type):
         target = [r for r in self.data if (category == "All" or r['category'] == category) and (not subcategory or r['subcategory'] == subcategory)]
         if not target: return []
         grouped = {}
         for r in target:
-            ts = float(r['timestamp']) if str(r['timestamp']).replace('.','').isdigit() else time.time()
-            dt = datetime.datetime.fromtimestamp(ts)
+            dt = datetime.datetime.fromtimestamp(float(r['timestamp']))
             if period_type == 'weekly': 
-                isocal = dt.isocalendar()
-                key = f"{isocal[0]}-Week {isocal[1]}"
+                iso = dt.isocalendar()
+                key = f"{iso[0]}-Week {iso[1]}"
                 start = dt - timedelta(days=dt.weekday()); end = start + timedelta(days=6)
                 date_range = f"{start.strftime('%m.%d')} ~ {end.strftime('%m.%d')}"
             else: 
                 key = f"{dt.year}-{dt.month:02d}"; date_range = f"{dt.year}.{dt.month}"
-            
             if key not in grouped: grouped[key] = {'c': 0, 't': 0, 'range': date_range}
             grouped[key]['t'] += 1
             if r.get('is_correct', 0) == 1: grouped[key]['c'] += 1
-        
         return sorted([{'Period': k, 'Accuracy': (v['c']/v['t']*100), 'Range': v['range']} for k, v in grouped.items()], key=lambda x: x['Period'])
 
 if 'stat_mgr' not in st.session_state: st.session_state.stat_mgr = StatManager()
 
 # ==========================================
-# 3. UTILS & SMART KEYPAD
+# 3. SMART KEYPAD (10 Priority Levels)
 # ==========================================
 def get_pitch_index(p):
     p = p.strip().capitalize().replace('♯','#').replace('♭','b')
@@ -164,67 +141,55 @@ def del_input(): st.session_state.user_input_buffer = st.session_state.user_inpu
 def clear_input(): st.session_state.user_input_buffer = ""
 
 def get_smart_keypad(cat, sub):
-    """Refined 10-level hierarchy and conditional visibility"""
+    """지능형 위계 레이아웃: 1.임시표 > 2.쉼표 > 3.성질 > 4.음 > 5.도수 > 6.숫자 > 7.모드 > 8.스케일 > 9.코드 > 10.슬래시"""
     layout = []
     
-    # 1. Accidentals
-    layout.append(['♭', '♯'])
+    # 1. 임시표 (♭, ♯)
+    if not (cat == 'Warming up' and sub == 'Counting semitones'): layout.append(['♭', '♯'])
     
-    # 2. Comma
-    if any(s in sub for s in ['Chord tones', 'Alterations', 'Tensions', 'Dom7', 'Dim7', 'Pitches', 'Pivot', 'Number']):
-        layout.append([','])
-        
-    # 3. Qualities (+, M, P, m, -) - [FIXED: Visible for Intervals and Enharmonic Numbers/Natural]
-    if cat == 'Intervals' or any(s in sub for s in ['Natural Form', 'Number', 'Alternative', 'Tracking']):
-        layout.append(['+', 'M', 'P', 'm', '-'])
-        
-    # 4. Note Names
+    # 2. 쉼표 (,)
+    if any(s in sub for s in ['Chord tones', 'Alterations', 'Tensions', 'Dom7', 'Dim7', 'Pitches', 'Pivot', 'Number']): layout.append([','])
+    
+    # 3. 음정 성질 (+, M, P, m, -) - [복구 완료]
+    if cat == 'Intervals' or any(s in sub for s in ['Natural Form', 'Number', 'Alternative', 'Tracking']): layout.append(['+', 'M', 'P', 'm', '-'])
+    
+    # 4. 음 이름 (C~B)
     if any(s in sub for s in ['Finding', 'tones', 'Pitch', 'Tracking', 'Key', 'Pitches', 'Pivot', 'Similarities']):
-        layout.append(['C', 'D', 'E', 'F'])
-        layout.append(['G', 'A', 'B'])
-        
-    # 5. Degrees
+        layout.append(['C', 'D', 'E', 'F']); layout.append(['G', 'A', 'B'])
+    
+    # 5. 도수 (I ~ VII) - 분할 배치
     if any(s in sub for s in ['Degrees', 'Finding', 'Pitch->Deg', 'Alterations', 'Chords', 'Functions']):
-        layout.append(['I', 'II', 'III'])
-        layout.append(['IV', 'V', 'VI', 'VII'])
+        layout.append(['I', 'II', 'III']); layout.append(['IV', 'V', 'VI', 'VII'])
         
-    # 6. Numbers
+    # 6. 숫자 (1 ~ 0)
     if any(s in sub for s in ['Counting', 'Number', 'Natural', 'r calc', 'tones']):
-        layout.append(['1', '2', '3', '4', '5'])
-        layout.append(['6', '7', '8', '9', '0'])
+        layout.append(['1', '2', '3', '4', '5']); layout.append(['6', '7', '8', '9', '0'])
         
-    # 7. Modes
+    # 7. 모드 (Ionian ~ Locrian)
     if cat == 'Modes' or sub in ['Avail Scales', 'Similarities']:
-        layout.append(['Ionian', 'Dorian', 'Phrygian', 'Lydian'])
-        layout.append(['Mixolydian', 'Aeolian', 'Locrian'])
+        layout.append(['Ionian', 'Dorian', 'Phrygian', 'Lydian']); layout.append(['Mixolydian', 'Aeolian', 'Locrian'])
         
-    # 8. Scales
+    # 8. 스케일 (Natural minor 등)
     if cat == 'Minor' or sub in ['Similarities', 'Degrees', 'Pitches']:
         layout.append(['Natural minor', 'Harmonic minor', 'Melodic minor'])
         
-    # 9. Chord types (Priority 9)
+    # 9. 코드 타입 (Priority 9)
     if any(c in cat for c in ['Chord Forms', 'Minor', 'Tritones', 'Mastery']) or 'Chords' in sub:
-        layout.append(['maj7', 'm7', '7', 'm7b5'])
-        layout.append(['dim7', '6', 'm6', 'sus4', 'aug'])
+        layout.append(['maj7', 'm7', '7', 'm7b5']); layout.append(['dim7', '6', 'm6', 'sus4', 'aug'])
         
-    # 10. Slash (Priority 10)
-    if sub in ['9 chord', 'Rootless', 'Pivot']:
-        layout.append(['/'])
+    # 10. 슬래시 (/) - 최하위
+    if sub in ['9 chord', 'Rootless', 'Pivot']: layout.append(['/'])
 
-    if sub == 'Solfege':
-        return [['Do','Re','Mi','Fa'], ['Sol','La','Ti'], ['Di','Ri','Fi','Si','Li'], ['Ra','Me','Se','Le','Te']]
-            
+    if sub == 'Solfege': return [['Do','Re','Mi','Fa'], ['Sol','La','Ti'], ['Di','Ri','Fi','Si','Li'], ['Ra','Me','Se','Le','Te']]
     return layout
 
 def render_keypad(cat, sub):
     key_rows = get_smart_keypad(cat, sub)
-    st.markdown("""<style>div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] .stButton > button { width: 100% !important; height: 70px !important; min-height: 70px !important; font-size: 18px !important; font-weight: bold !important; border-radius: 12px !important; margin-bottom: 6px !important; padding: 0px !important; }</style>""", unsafe_allow_html=True)
+    st.markdown("""<style>div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] .stButton > button { width: 100% !important; height: 70px !important; min-height: 70px !important; font-size: 18px !important; font-weight: bold !important; border-radius: 10px !important; margin-bottom: 6px !important; padding: 0px !important; }</style>""", unsafe_allow_html=True)
     for i, row in enumerate(key_rows):
         cols = st.columns(len(row))
-        for j, key in enumerate(row):
-            cols[j].button(key, key=f"k_{i}_{j}_{key}", on_click=add_input, args=(key,), use_container_width=True)
-        if i == 0: st.write("") 
-
+        for j, key in enumerate(row): cols[j].button(key, key=f"k_{i}_{j}_{key}", on_click=add_input, args=(key,), use_container_width=True)
+        if i == 0: st.write("") # 임시표 뒤 여백
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 1, 2])
     c1.button("⬅️ Del", on_click=del_input, use_container_width=True)
@@ -232,7 +197,9 @@ def render_keypad(cat, sub):
     if c3.button("✅ Submit", type="primary", use_container_width=True): return True
     return False
 
-# --- Question Generator ---
+# ==========================================
+# 4. QUIZ LOGIC (Restored Speed Run)
+# ==========================================
 def generate_question(cat, sub):
     try:
         root = random.choice(NOTES); ridx = get_pitch_index(root)
@@ -247,29 +214,23 @@ def generate_question(cat, sub):
                 k, q = random.choice(list(NATURAL_INTERVAL_DATA.items())); qn = random.choice(q)
                 return f"What is {qn}'s natural form?", [k], 'single'
         elif cat == 'Warming up':
-            if sub == 'Counting semitones': d = random.randint(1,12); return f"Which degree is {d} semitones away? (P1=1)", DISTANCE_TO_DEGREE[d], 'single'
+            if sub == 'Counting semitones': d = random.randint(1,13); return f"Which degree is {d} semitones away? (P1=1)", DISTANCE_TO_DEGREE[d], 'single'
             if sub == 'Finding degrees':
                 dn, dv = random.choice(list(DEGREE_MAP.items())); p = random.choice(NOTES)
                 return f"What is {dn} of {p} Key?", ENHARMONIC_GROUPS[(get_pitch_index(p)+dv)%12], 'single'
             if sub == 'Chord tones':
                 p, ct = random.choice(NOTES), random.choice(list(CHORD_FORMULAS.keys())); idx = get_pitch_index(p)
                 ans = [get_pitch_from_index((idx+interval)%12) for interval in CHORD_FORMULAS[ct]]
-                return f"Chord tones of {p}{ct}? (Separate by comma)", ans, 'all_indices'
-            if sub == 'Solfege': k,v = random.choice(list(SOLFEGE.items())); return f"{k}'s solfege?", [v], 'single'
+                return f"Chord tones of {p}{ct}? (Use Comma)", ans, 'all_indices'
         elif cat == 'Intervals':
             data = [('m2',1,'M7'),('M2',2,'m7'),('m3',3,'M6'),('M3',4,'m6'),('P4',5,'P5'),('P5',7,'P4'),('m6',8,'M3'),('M6',9,'m3'),('m7',10,'M2'),('M7',11,'m2')]; q_int, semis, inv_int = random.choice(data)
             if sub == 'Alternative': idx = (get_pitch_index(root)+semis)%12; return f"Alternative to {root}{q_int}?", [f"{r}{inv_int}" for r in get_enharmonic_names(idx)], 'single'
             if sub == 'Tracking': idx = (get_pitch_index(root)+semis)%12; return f"Pitch {q_int} up from {root}?", get_enharmonic_names(idx), 'single'
-        elif cat == 'Chord Forms':
-            if sub == 'Relationships':
-                qt = random.randint(1,2)
-                if qt==1: return f"Change {root}m7 to 6th?", [f"{r}6" for r in get_enharmonic_names(ridx+3)], 'single'
-                else: return f"Change {root}maj7 to 7th?", [f"{r}7" for r in get_enharmonic_names(ridx)], 'single'
-        return f"Logic for {cat}/{sub} root?", ["C"], 'single'
+        return f"Find the root of {cat}/{sub}?", ["C"], 'single'
     except: return "Q Error", ["C"], 'single'
 
 # ==========================================
-# 4. APP UI & NAVIGATION
+# 5. APP UI
 # ==========================================
 st.set_page_config(page_title="Road to Berklee", page_icon="🎹")
 cookie_manager = stx.CookieManager()
@@ -299,8 +260,7 @@ if not st.session_state.logged_in_user:
 
 with st.sidebar:
     st.write(f"👤 **{st.session_state.logged_in_user}**")
-    if st.button("Logout"):
-        st.session_state.logged_in_user = None; cookie_manager.delete("berklee_user"); st.rerun()
+    if st.button("Logout"): st.session_state.logged_in_user = None; cookie_manager.delete("berklee_user"); st.rerun()
     st.markdown("---")
     menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "🏆 Leaderboard"])
 
@@ -308,13 +268,7 @@ if 'quiz_state' not in st.session_state:
     st.session_state.quiz_state = {'active': False, 'cat': '', 'sub': '', 'mode': '', 'current_idx': 0, 'score': 0, 'start_time': 0, 'limit': 0, 'is_retry': False}
 
 def start_quiz(cat, sub, mode, limit=0, is_retry=False, retry_pool=None):
-    st.session_state.quiz_state = {
-        'active': True, 'cat': cat, 'sub': sub, 'mode': mode,
-        'current_idx': 0, 'score': 0, 'start_time': time.time(),
-        'limit': len(retry_pool) if is_retry else limit,
-        'is_retry': is_retry, 'retry_pool': retry_pool,
-        'current_q': retry_pool[0] if is_retry else generate_question(cat, sub)
-    }
+    st.session_state.quiz_state = {'active': True, 'cat': cat, 'sub': sub, 'mode': mode, 'current_idx': 0, 'score': 0, 'start_time': time.time(), 'limit': len(retry_pool) if is_retry else limit, 'is_retry': is_retry, 'retry_pool': retry_pool, 'current_q': retry_pool[0] if is_retry else generate_question(cat, sub)}
     st.session_state.wrong_count = 0; st.session_state.user_input_buffer = ""; st.session_state.last_result = None
     if not is_retry: st.session_state.wrong_questions_pool = []
     st.session_state.page = 'quiz'; st.rerun()
@@ -361,7 +315,7 @@ if menu == "🏠 Home":
     with col1:
         if os.path.exists("logo.png"): st.image("logo.png", width=180)
         else: st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Berklee_College_of_Music_Logo.png/800px-Berklee_College_of_Music_Logo.png", width=150)
-    st.markdown("<div style='text-align: left;'><h1>Road to Berklee</h1><h3>Master Music Theory</h3></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: left;'><h1>Road to Berklee</h1><h3>Master Music Theory Step-by-Step</h3></div>", unsafe_allow_html=True)
 
 elif menu == "📝 Start Quiz":
     if st.session_state.page == 'quiz':
@@ -372,24 +326,20 @@ elif menu == "📝 Start Quiz":
             elif res.get('show_ans'): st.error(f"❌ Answer: {res['ans']}")
             else: st.toast(f"❌ Try Again ({st.session_state.wrong_count}/3)")
             st.session_state.last_result = None
-
         qs = st.session_state.quiz_state
         if qs['mode'] == 'speed':
-            elapsed = time.time() - qs['start_time']
-            if elapsed >= qs['limit']: 
+            elap = time.time() - qs['start_time']
+            if elap >= qs['limit']: 
                 st.session_state.stat_mgr.update_leaderboard('speed', qs['cat'], qs['sub'], {'correct': qs['score'], 'total_try': qs['current_idx']})
                 st.session_state.page = 'result'; st.rerun()
-            st.progress(max(0.0, min(1.0, (qs['limit']-elapsed)/qs['limit']))); st.write(f"⏱️ {int(qs['limit']-elapsed)}s | Score: {qs['score']}")
+            st.progress(max(0.0, min(1.0, (qs['limit']-elap)/qs['limit']))); st.write(f"⏱️ {int(qs['limit']-elap)}s | Score: {qs['score']}")
         else: st.progress(qs['current_idx'] / qs['limit']); st.write(f"Q {qs['current_idx']+1} / {qs['limit']}")
         st.subheader(qs['current_q'][0]); st.text_input("Answer Input", value=st.session_state.user_input_buffer, disabled=True)
         if render_keypad(qs['cat'], qs['sub']): check_answer()
         if st.button("🏠 Quit Quiz"): st.session_state.page = 'home'; st.session_state.quiz_state['active'] = False; st.rerun()
-
     elif st.session_state.page == 'result':
         qs = st.session_state.quiz_state; st.header("Result")
-        if not qs['is_retry']: 
-            if qs['mode']=='speed': st.metric("Correct", qs['score'])
-            else: st.metric("Score", f"{qs['score']}/{qs['limit']}", f"{qs['score']/qs['limit']*100:.1f}%")
+        if not qs['is_retry']: st.metric("Score", f"{qs['score']}/{qs['limit']}" if qs['mode']!='speed' else f"{qs['score']} Q")
         if st.session_state.wrong_questions_pool:
             if st.button("🔄 오답 다시 풀기", use_container_width=True): start_quiz(qs['cat'], qs['sub'], qs['mode'], is_retry=True, retry_pool=st.session_state.wrong_questions_pool)
         if st.button("⬅️ Back", use_container_width=True): st.session_state.page = 'home'; st.rerun()
@@ -423,7 +373,7 @@ elif menu == "📊 Statistics":
             if d_list:
                 df = pd.DataFrame(d_list)
                 chart = alt.Chart(df).mark_line(point=True).encode(
-                    x=alt.X('Period:N', title='Week'),
+                    x=alt.X('Period:N', title='Period', axis=alt.Axis(labelAngle=-45)),
                     y=alt.Y('Accuracy:Q', title='Accuracy (%)', scale=alt.Scale(domain=[0, 100])),
                     tooltip=[alt.Tooltip('Period:N'), alt.Tooltip('Range:N'), alt.Tooltip('Accuracy:Q', format='.1f')]
                 ).properties(width=700, height=400).interactive()
