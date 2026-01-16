@@ -22,6 +22,7 @@ NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 NATURAL_INTERVAL_DATA = {'P1': ['-2', '+7', 'P8', '+14'], 'm2': ['+1', 'm9', '+8'], 'M2': ['-3', 'M9', '-10'], 'm3': ['+2', 'm10', '+9'], 'M3': ['-4', 'M10', '-11'], 'P4': ['+3', 'P11', '+10'], 'Tritone': ['+11', '-12'], 'P5': ['-6', 'P12', '-13'], 'm6': ['+5', 'm13', '+12'], 'M6': ['-7', 'M13', '-14'], 'm7': ['+6', 'm14', '+13'], 'M7': ['-8', 'M14']}
 DISTANCE_TO_DEGREE = {1:['I'],2:['#I','bII'],3:['II'],4:['#II','bIII'],5:['III'],6:['IV'],7:['#IV','bV'],8:['V'],9:['#V','bVI'],10:['VI'],11:['#VI','bVII'],12:['VII']}
 DEGREE_MAP = {'I':0,'bII':1,'#I':1,'II':2,'bIII':3,'#II':3,'III':4,'IV':5,'#III':5,'bV':6,'#IV':6,'V':7,'bVI':8,'#V':8,'VI':9,'bVII':10,'#VI':10,'VII':11}
+R_CALC_MAP = {'I':0,'P1':0,'V':1,'P5':1,'II':2,'M2':2,'9':2,'VI':3,'M6':3,'13':3,'III':4,'M3':4,'VII':5,'M7':5,'#IV':6,'bV':6,'#11':6,'bII':7,'#I':7,'b9':7,'bVI':8,'#V':8,'b13':8,'bIII':9,'#II':9,'m3':9,'#9':9,'bVII':10,'m7':10,'IV':11,'P4':11,'11':11}
 ENHARMONIC_GROUPS = {0:['C','B#'],1:['Db','C#'],2:['D'],3:['Eb','D#'],4:['E','Fb'],5:['F','E#'],6:['Gb','F#'],7:['G'],8:['Ab','G#'],9:['A'],10:['Bb','A#'],11:['B','Cb']}
 SOLFEGE = {'I':'Do','II':'Re','III':'Mi','IV':'Fa','V':'Sol','VI':'La','VII':'Ti','bII':'Ra','bIII':'Me','bV':'Se','bVI':'Le','bVII':'Te','#I':'Di','#II':'Ri','#IV':'Fi','#V':'Si','#VI':'Li'}
 KEY_SIGS_MAJOR = {'C':'','G':'#','D':'##','A':'###','E':'####','B':'#####','F#':'######','F':'b','Bb':'bb','Eb':'bbb','Ab':'bbbb','Db':'bbbbb','Gb':'bbbbbb'}
@@ -49,8 +50,26 @@ CATEGORY_INFO = {
     'Mastery': ['Functions', 'Degrees', 'Pitches', 'Avail Scales', 'Pivot', 'Similarities']
 }
 
+# --- THEORY DATA (Corrected) ---
+THEORY_DATA = {
+    'Enharmonics': {
+        'Degrees': "### Enharmonic Degrees\n\nNotes that share the same pitch but have different names.\n\n| Sharp | Flat | Relation |\n| :--- | :--- | :--- |\n| #I | bII | Root # ↔ Super b |\n| #II | bIII | Super # ↔ Mediant b |\n| #IV | bV | Tritone |",
+        'Number': "### Enharmonic Interval Numbers\n\nIdentifying compound intervals and rare interval names.\n\n| Semitones | Simple | Compound | Rare |\n| :--- | :--- | :--- | :--- |\n| 2 | 2 (M2) | 9 | bb3 |\n| 5 | 4 (P4) | 11 | #3 |",
+        'Natural Form': "### Natural Form\n\nIdentifying the fundamental interval quality from compound numbers, tensions, or altered notations.\n\n| Compound / Code | Simple Calculation | Natural Form |\n| :--- | :--- | :--- |\n| **8, 15** | Octave | **P1 / P8** |\n| **b9, b16** | 9 - 7 = 2 (Minor) | **m2** |\n| **9, 16** | 9 - 7 = 2 (Major) | **M2** |\n| **#9, b10** | 10 - 7 = 3 (Minor) | **m3** |\n| **10** | 10 - 7 = 3 (Major) | **M3** |\n| **11** | 11 - 7 = 4 | **P4** |\n| **#11, b5** | 11 - 7 = #4 | **Tritone** |\n| **12** | 12 - 7 = 5 | **P5** |\n| **b13** | 13 - 7 = 6 (Minor) | **m6** |\n| **13** | 13 - 7 = 6 (Major) | **M6** |\n| **14** | 14 - 7 = 7 (Minor) | **m7** |\n| **Maj14** | 14 - 7 = 7 (Major) | **M7** |\n"
+    },
+    'Warming up': {
+        'Counting semitones': "### Semitones Map (Counting from 1)\n\nWe count the **Root as 1** (the starting point).\n\n| Count | Interval | Degree |\n| :--- | :--- | :--- |\n| **1** | Perfect Unison | **P1** |\n| **2** | Minor 2nd | **b2** |\n| **3** | Major 2nd | **M2** |\n| **4** | Minor 3rd | **b3** |\n| **5** | Major 3rd | **M3** |\n| **6** | Perfect 4th | **P4** |\n| **7** | Tritone | **b5/#4** |\n| **8** | Perfect 5th | **P5** |\n| **9** | Minor 6th | **b6** |\n| **10** | Major 6th | **M6** |\n| **11** | Minor 7th | **b7** |\n| **12** | Major 7th | **M7** |\n| **13** | Octave | **P8** |",
+        'Finding degrees': "### Finding Degrees\n\nFinding the specific degree within a given major key.\n* Example: What is the IV of C? -> **F**",
+        'Chord tones': "### Chord Formulas\n\n* **Maj7:** 1-3-5-7\n* **7:** 1-3-5-b7\n* **m7:** 1-b3-5-b7\n* **m7b5:** 1-b3-b5-b7\n* **dim7:** 1-b3-b5-bb7",
+        'Key signatures': "### Key Signatures\n\n**Sharps:** F-C-G-D-A-E-B\n**Flats:** B-E-A-D-G-C-F",
+        'Solfege': "### Chromatic Solfege\n\n* Di, Ri, Fi, Si, Li (Sharps)\n* Ra, Me, Se, Le, Te (Flats)"
+    }
+}
+
+DEFAULT_THEORY = "### Practice Makes Perfect!\n\nNo specific theory content is available for this section yet.\nIf you are **Oh Seung-yeol**, you can edit this text."
+
 # ==========================================
-# 2. STAT MANAGER (Theory Removed)
+# 2. STAT MANAGER
 # ==========================================
 class StatManager:
     def __init__(self, key_file="service_account.json", sheet_name="Berklee_DB"):
@@ -74,6 +93,8 @@ class StatManager:
             except: self.ws_history = self.sh.add_worksheet(title="History", rows="1000", cols="10")
             try: self.ws_leaderboard = self.sh.worksheet("Leaderboard")
             except: self.ws_leaderboard = self.sh.add_worksheet(title="Leaderboard", rows="1000", cols="10")
+            try: self.ws_theory = self.sh.worksheet("Theory")
+            except: self.ws_theory = self.sh.add_worksheet(title="Theory", rows="200", cols="3")
 
     def hash_password(self, password): return hashlib.sha256(password.encode()).hexdigest()
     def create_user(self, username, password):
@@ -102,7 +123,22 @@ class StatManager:
         except: self.data = []
         try: self.leaderboard_raw = self.ws_leaderboard.get_all_records()
         except: self.leaderboard_raw = []
-    
+    def get_theory(self, category, subcategory):
+        if not self.connected: return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
+        try:
+            for r in self.ws_theory.get_all_records():
+                if r['category'] == category and r['subcategory'] == subcategory and str(r['content']).strip(): return r['content']
+            return THEORY_DATA.get(category, {}).get(subcategory, DEFAULT_THEORY)
+        except: return DEFAULT_THEORY
+    def save_theory(self, category, subcategory, content):
+        if not self.connected: return False
+        try:
+            records = self.ws_theory.get_all_records()
+            row_idx = next((i+2 for i, r in enumerate(records) if r['category'] == category and r['subcategory'] == subcategory), None)
+            if row_idx: self.ws_theory.update_cell(row_idx, 3, content)
+            else: self.ws_theory.append_row([category, subcategory, content])
+            return True
+        except: return False
     def record(self, category, subcategory, is_correct, is_retry=False):
         if not self.current_user or not self.connected: return
         now = datetime.datetime.now()
@@ -144,7 +180,7 @@ class StatManager:
 if 'stat_mgr' not in st.session_state: st.session_state.stat_mgr = StatManager()
 
 # ==========================================
-# 3. UTILS & GENERATOR & KEYPAD
+# 3. GENERATOR & KEYPAD
 # ==========================================
 def get_enharmonic_names(idx): return ENHARMONIC_GROUPS.get(idx % 12, [])
 def get_pitch_index(p):
@@ -159,18 +195,24 @@ def normalize_input(text):
     text = text.replace('♭', 'b').replace('♯', '#')
     return set([p.strip().lower() for p in text.replace('/',',').split(',') if p.strip()])
 
+# [FIXED: Custom Layout for Degrees & Full Width Buttons]
 def get_keypad_keys(cat, sub):
+    # Special Layout for Degrees: 2 -> 3 -> 4 columns
     if (cat == 'Enharmonics' and sub == 'Degrees') or \
        (cat == 'Warming up' and sub == 'Finding degrees') or \
        (cat == 'Locations' and sub == 'Pitch->Deg') or \
        (cat == 'Modes' and sub == 'Alterations') or \
        (cat == 'Mastery' and sub == 'Degrees'):
-       return [['♭', '♯'], ['I','II','III','IV'], ['V','VI','VII']]
+       return [
+           ['♭', '♯'], 
+           ['I','II','III'], 
+           ['IV','V','VI','VII']
+       ]
     if cat == 'Intervals' or \
        (cat == 'Enharmonics' and sub == 'Natural Form') or \
        (cat == 'Enharmonics' and sub == 'Number'):
        return [['m','M','P'], ['1','2','3','4'], ['5','6','7','8'], ['+','-']]
-    if (cat == 'Modes' and sub != 'Chords(Deg)' and sub != 'Chords(Key)') or \
+    if (cat == 'Modes' and sub not in ['Chords(Deg)', 'Chords(Key)']) or \
        (cat == 'Mastery' and sub == 'Avail Scales'):
        return [['Ionian','Dorian'], ['Phrygian','Lydian'], ['Mixolydian','Aeolian'], ['Locrian']]
     if cat == 'Warming up' and sub == 'Solfege':
@@ -183,30 +225,29 @@ def get_keypad_keys(cat, sub):
 
 def render_keypad(cat, sub):
     key_rows = get_keypad_keys(cat, sub)
+    
     st.markdown("""
         <style>
+        /* Specific selector for Keypad Buttons */
         div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] .stButton > button {
             width: 100% !important;
             height: 70px !important;
             font-size: 24px !important;
             font-weight: bold !important;
-            border-radius: 10px !important;
+            border-radius: 12px !important;
             margin: 0px !important;
-        }
-        section[data-testid="stSidebar"] .stButton > button {
-            height: auto !important;
-            width: auto !important;
-            font-size: inherit !important;
         }
         div[data-testid="column"] {
             padding: 2px !important;
         }
         </style>
     """, unsafe_allow_html=True)
-    for row_keys in key_rows:
-        cols = st.columns(len(row_keys)) 
-        for i, key in enumerate(row_keys):
-            if cols[i].button(key, key=f"k_{key}"):
+    
+    for row in key_rows:
+        cols = st.columns(len(row)) # Create columns based on row length (2, 3, or 4)
+        for i, key in enumerate(row):
+            # use_container_width=True forces button to fill the column
+            if cols[i].button(key, key=f"k_{key}", use_container_width=True):
                 st.session_state.user_input_buffer += key
                 st.rerun()
     st.markdown("---")
@@ -219,6 +260,7 @@ def render_keypad(cat, sub):
         if st.button("✅ Submit", type="primary", use_container_width=True): return True
     return False
 
+# ... (Previous Generator Functions included)
 def generate_question(cat, sub):
     try:
         if cat == 'Enharmonics':
@@ -422,7 +464,7 @@ with st.sidebar:
         cookie_manager.delete("berklee_user") 
         st.rerun()
     st.markdown("---")
-    menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "🏆 Leaderboard", "ℹ️ Credits"]) # Theory Removed
+    menu = st.radio("Menu", ["🏠 Home", "📝 Start Quiz", "📊 Statistics", "🏆 Leaderboard", "📚 Theory", "ℹ️ Credits"])
 
 # --- PAGE ROUTING ---
 if 'quiz_state' not in st.session_state:
@@ -583,10 +625,10 @@ elif menu == "📝 Start Quiz":
                 cnt = st.number_input("Count", 5)
                 if st.button("Start Practice"): start_quiz(sel_cat, sel_sub, 'practice', cnt)
             with m2:
-                st.write("20 Questions, No Feedback."); 
+                st.write("20 Questions, No Feedback.")
                 if st.button("Start Test"): start_quiz(sel_cat, sel_sub, 'test', 20)
             with m3:
-                st.write("60 Seconds."); 
+                st.write("60 Seconds.")
                 if st.button("Start Speed Run"): start_quiz(sel_cat, sel_sub, 'speed', 60)
 
 elif menu == "📊 Statistics":
@@ -627,6 +669,50 @@ elif menu == "🏆 Leaderboard":
         st.subheader("Speed")
         d = st.session_state.stat_mgr.leaderboard.get(l_cat, {}).get(l_sub, {}).get('speed', [])
         for i, r in enumerate(d): st.write(f"**{i+1}. {r.get('username','?')}**: {r['solved']} ({r['rate']:.1f}%)")
+
+elif menu == "📚 Theory":
+    st.header("📚 Music Theory") 
+    
+    col1, col2 = st.columns([8, 2])
+    t_cat = col1.selectbox("Category", list(CATEGORY_INFO.keys()))
+    t_sub = col1.selectbox("Subcategory", CATEGORY_INFO[t_cat])
+    
+    if st.session_state.logged_in_user == '오승열':
+        if not st.session_state.edit_mode:
+            if col2.button("✏️ Edit"):
+                st.session_state.edit_mode = True
+                st.rerun()
+
+    st.markdown("---")
+    current_content = st.session_state.stat_mgr.get_theory(t_cat, t_sub)
+    
+    if st.session_state.edit_mode and st.session_state.logged_in_user == '오승열':
+        st.warning("🛠️ Editing Mode")
+        new_content = st.text_area("Markdown Content", value=current_content, height=400)
+        
+        c1, c2, c3 = st.columns([1,1,2])
+        with c1:
+            if st.button("💾 Save"):
+                if st.session_state.stat_mgr.save_theory(t_cat, t_sub, new_content):
+                    st.success("Saved!")
+                    st.session_state.edit_mode = False
+                    time.sleep(0.5)
+                    st.rerun()
+                else: st.error("Error saving.")
+        with c2:
+            if st.button("🔄 Reset"):
+                default_text = THEORY_DATA.get(t_cat, {}).get(t_sub, DEFAULT_THEORY)
+                if st.session_state.stat_mgr.save_theory(t_cat, t_sub, default_text):
+                    st.success("Reset to Default (English)!")
+                    st.session_state.edit_mode = False
+                    time.sleep(0.5)
+                    st.rerun()
+        with c3:
+            if st.button("❌ Cancel"):
+                st.session_state.edit_mode = False
+                st.rerun()
+    else:
+        st.markdown(current_content, unsafe_allow_html=True)
 
 elif menu == "ℹ️ Credits":
     st.header("ℹ️ Credits")
